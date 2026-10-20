@@ -1,0 +1,7 @@
+# Nur nötig, wenn die App (zusätzlich) auf Netlify laufen soll.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
