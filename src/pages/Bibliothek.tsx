@@ -47,6 +47,7 @@ function UebungsListe() {
   return (
     <>
       <Button variante="primaer" className="w-full" onClick={() => { setBearbeite(undefined); setOffen(true); }}><Icon name="plus" /> Neue Übung</Button>
+      {uebungen.length > 0 && <p className="text-sm text-text2 px-1">Tippe auf eine Übung, um Name, Art, Kategorie oder Notiz zu ändern oder sie zu löschen.</p>}
       {!uebungen.length && <Leer titel="Noch keine Übungen" text="Lege deine erste Übung an, z. B. Bankdrücken." />}
       {[...gruppen.entries()].sort((a, b) => a[0].localeCompare(b[0], "de")).map(([kat, us]) => (
         <Abschnitt key={kat} titel={kat}>
@@ -56,10 +57,13 @@ function UebungsListe() {
                 className="w-full min-h-14 px-4 py-2 text-left flex items-center gap-3 active:bg-karte2">
                 <span className="flex-1 min-w-0">
                   <span className="block font-medium truncate">{u.name}</span>
-                  {u.notiz && <span className="block text-sm text-text2 truncate">{u.notiz}</span>}
+                  <span className="block text-sm text-text2 truncate">
+                    {[u.art === "zeit" ? "Zeit" : u.art === "koerpergewicht" ? "Körpergewicht" : "Gewicht", u.beispiel ? "Beispiel" : "", u.notiz ?? ""].filter(Boolean).join(" · ")}
+                  </span>
                 </span>
-                {u.beispiel && <span className="text-xs text-muted">Beispiel</span>}
-                <Icon name="stift" className="size-5 text-muted" />
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-akzent shrink-0">
+                  <Icon name="stift" className="size-4" /> Bearbeiten
+                </span>
               </button>
             ))}
           </Karte>

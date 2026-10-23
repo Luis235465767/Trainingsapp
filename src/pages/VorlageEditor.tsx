@@ -63,10 +63,17 @@ export function VorlageEditor({ id }: { id: string }) {
                   <span className="text-xs text-muted">Ziel-Sätze</span>
                   <ZahlFeld label="Ziel-Sätze" wert={x.zielSaetze ?? 0} schritt={1} onChange={n => setzeUebung(i, { zielSaetze: n || undefined })} />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <span className="text-xs text-muted">Ziel-Wdh.</span>
-                  <ZahlFeld label="Ziel-Wiederholungen" wert={x.zielWdh ?? 0} schritt={1} onChange={n => setzeUebung(i, { zielWdh: n || undefined })} />
-                </div>
+                {map.get(x.uebungId)?.art === "zeit" ? (
+                  <div className="flex-1 space-y-1">
+                    <span className="text-xs text-muted">Ziel-Sekunden</span>
+                    <ZahlFeld label="Ziel-Sekunden" wert={x.zielSek ?? 0} schritt={5} onChange={n => setzeUebung(i, { zielSek: n || undefined })} />
+                  </div>
+                ) : (
+                  <div className="flex-1 space-y-1">
+                    <span className="text-xs text-muted">Ziel-Wdh.</span>
+                    <ZahlFeld label="Ziel-Wiederholungen" wert={x.zielWdh ?? 0} schritt={1} onChange={n => setzeUebung(i, { zielWdh: n || undefined })} />
+                  </div>
+                )}
               </div>
             </Karte>
           ))}
@@ -76,7 +83,7 @@ export function VorlageEditor({ id }: { id: string }) {
         {!neu && <Button variante="gefahr" className="w-full" onClick={loeschen}>Vorlage löschen</Button>}
       </Inhalt>
       <UebungsAuswahl offen={auswahl} onClose={() => setAuswahl(false)} schonDrin={v.uebungen.map(x => x.uebungId)}
-        onWahl={u => setV(alt => alt && { ...alt, uebungen: [...alt.uebungen, { uebungId: u.id, zielSaetze: 3, zielWdh: 8 }] })} />
+        onWahl={u => setV(alt => alt && { ...alt, uebungen: [...alt.uebungen, u.art === "zeit" ? { uebungId: u.id, zielSaetze: 3, zielSek: 30 } : { uebungId: u.id, zielSaetze: 3, zielWdh: u.art === "koerpergewicht" ? 10 : 8 }] })} />
     </>
   );
 }

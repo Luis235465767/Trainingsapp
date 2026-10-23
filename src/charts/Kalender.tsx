@@ -59,7 +59,7 @@ export function Kalender({ tage, von, details }: { tage: Map<string, Kalendertag
         })}
       </div>
       {gewaehlt && (
-        <div className="rounded-xl bg-karte2 px-3 py-2 text-sm" aria-live="polite">
+        <div className="rounded-md bg-karte2 px-3 py-2 text-sm" aria-live="polite">
           <p className="font-semibold">{formatTag(gewaehlt)}</p>
           {details(gewaehlt).length ? details(gewaehlt).map((d, i) => <p key={i} className="text-text2">{d}</p>) : <p className="text-text2">Kein Training</p>}
         </div>

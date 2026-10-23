@@ -13,7 +13,7 @@ export function BeispielHinweis() {
     melde("Beispieldaten gelöscht");
   };
   return (
-    <div className="rounded-2xl border border-dashed border-achse bg-karte2 p-3 flex items-center gap-3 text-sm">
+    <div className="rounded-lg border border-dashed border-achse bg-karte2 p-3 flex items-center gap-3 text-sm">
       <span className="flex-1 text-text2">Zum Ausprobieren sind <b className="text-text">Beispieldaten</b> geladen.</span>
       <button type="button" onClick={loeschen} className="min-h-10 px-3 rounded-lg font-semibold text-gefahr active:bg-gefahr/10">Löschen</button>
     </div>

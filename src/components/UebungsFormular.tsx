@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { KATEGORIEN, type Uebung } from "../model/types";
+import { KATEGORIEN, UEBUNGSARTEN, type Uebung, type UebungsArt } from "../model/types";
 import { neueId, speichereUebung } from "../db/repo";
-import { Blatt, Button, Feld, eingabeKlasse } from "./ui";
+import { Blatt, Button, Feld, Segmente, eingabeKlasse } from "./ui";
 import { useUebungen } from "../db/hooks";
 
 /** Formular zum Anlegen oder Bearbeiten einer Übung, als unteres Blatt. */
@@ -21,12 +21,13 @@ function Inhalt({ uebung, vorschlag, onClose, onGespeichert, onLoeschen }: {
   const alle = useUebungen() ?? [];
   const [name, setName] = useState(uebung?.name ?? vorschlag);
   const [kategorie, setKategorie] = useState(uebung?.kategorie ?? "Brust");
+  const [art, setArt] = useState<UebungsArt>(uebung?.art ?? "gewicht");
   const [notiz, setNotiz] = useState(uebung?.notiz ?? "");
   const eigeneKategorien = [...new Set(alle.map(u => u.kategorie))].filter(k => !(KATEGORIEN as readonly string[]).includes(k));
   const doppelt = alle.some(u => u.id !== uebung?.id && u.name.trim().toLowerCase() === name.trim().toLowerCase());
 
   const speichern = async () => {
-    const u: Uebung = { ...uebung, id: uebung?.id ?? neueId(), name: name.trim(), kategorie: kategorie.trim() || "Sonstiges", notiz: notiz.trim() || undefined };
+    const u: Uebung = { ...uebung, id: uebung?.id ?? neueId(), name: name.trim(), kategorie: kategorie.trim() || "Sonstiges", art, notiz: notiz.trim() || undefined };
     await speichereUebung(u);
     onGespeichert?.(u);
     onClose();
@@ -37,6 +38,14 @@ function Inhalt({ uebung, vorschlag, onClose, onGespeichert, onLoeschen }: {
       <Feld label="Name" hinweis={doppelt ? "Eine Übung mit diesem Namen gibt es schon." : undefined}>
         <input className={eingabeKlasse} value={name} onChange={e => setName(e.target.value)} autoFocus placeholder="z. B. Bankdrücken" />
       </Feld>
+      <div>
+        <span className="block text-sm font-medium text-text2 mb-1">Art</span>
+        <Segmente<UebungsArt> label="Art der Übung" wert={art} onChange={setArt} werte={UEBUNGSARTEN.map(a => ({ wert: a.wert, label: a.label }))} />
+        <p className="text-xs text-muted mt-1">{UEBUNGSARTEN.find(a => a.wert === art)?.text}</p>
+        {uebung && (uebung.art ?? "gewicht") !== art && (
+          <p className="text-xs text-rekord mt-1">Bisherige Sätze bleiben gespeichert und werden in der neuen Art angezeigt.</p>
+        )}
+      </div>
       <Feld label="Kategorie / Muskelgruppe">
         <input className={eingabeKlasse} list="kategorien" value={kategorie} onChange={e => setKategorie(e.target.value)} />
         <datalist id="kategorien">
@@ -46,7 +55,7 @@ function Inhalt({ uebung, vorschlag, onClose, onGespeichert, onLoeschen }: {
       <div className="flex flex-wrap gap-2">
         {KATEGORIEN.map(k => (
           <button key={k} type="button" onClick={() => setKategorie(k)}
-            className={`min-h-10 px-3 rounded-full text-sm border ${kategorie === k ? "bg-akzent text-akzent-text border-akzent" : "border-linie text-text2"}`}>{k}</button>
+            className={`min-h-10 px-3 rounded-md text-sm border ${kategorie === k ? "bg-akzent text-akzent-text border-akzent" : "border-linie text-text2"}`}>{k}</button>
         ))}
       </div>
       <Feld label="Notiz (optional)">

@@ -4,7 +4,8 @@ import { Abschnitt, Button, Karte, eingabeKlasse } from "./ui";
 import { Icon } from "./Icon";
 import { useRueckmeldung } from "./Rueckmeldung";
 
-const TOKEN_LINK = "https://github.com/settings/personal-access-tokens/new";
+// Vorausgefülltes Formular: Name, Ablauf in einem Jahr, nur die Berechtigung „Gists“
+const TOKEN_LINK = "https://github.com/settings/personal-access-tokens/new?name=Trainingstagebuch-Sync&description=Synchronisierung%20Trainingstagebuch%20(nur%20Gists)&expires_in=366&gists=write";
 
 export function SyncAnzeige({ klein = false }: { klein?: boolean }) {
   const s = useSyncStatus();
@@ -65,9 +66,9 @@ export function SyncBereich() {
           Gleicht deine Daten über ein <b className="text-text">privates Gist</b> in deinem GitHub-Konto zwischen Handy, Tablet und Computer ab. Einmal pro Gerät ein Token eintragen:
         </p>
         <ol className="list-decimal pl-5 space-y-1 text-text2">
-          <li><a className="text-akzent underline" href={TOKEN_LINK} target="_blank" rel="noopener">Token erstellen</a> (bei GitHub anmelden), Namen und Ablaufdatum wählen.</li>
-          <li>Unter <b className="text-text">Permissions → Account permissions → Gists</b> „Read and write“ wählen. Sonst nichts.</li>
-          <li>„Generate token“, Token kopieren und hier einfügen.</li>
+          <li><a className="text-akzent underline" href={TOKEN_LINK} target="_blank" rel="noopener">Token erstellen</a> (bei GitHub anmelden). Name, Ablauf und die Berechtigung „Gists“ sind schon ausgefüllt.</li>
+          <li>Ganz unten „Generate token“ tippen und das Token kopieren.</li>
+          <li>Hier einfügen und „Verbinden“ tippen.</li>
         </ol>
         <p className="text-xs text-muted">Das Token deiner Karteikarten-App funktioniert auch. Es bleibt nur auf diesem Gerät gespeichert.</p>
         <input type="password" autoComplete="off" spellCheck={false} placeholder="github_pat_…" aria-label="GitHub-Token"

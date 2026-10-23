@@ -5,7 +5,7 @@ export interface TooltipZeile { farbe: string; label: string; wert: string }
 /** Einheitlicher Tooltip: Wert fett vorn, Serienname dahinter, mit kurzem Farbstrich. */
 export function TooltipBox({ titel, zeilen, fuss }: { titel: string; zeilen: TooltipZeile[]; fuss?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-linie bg-karte px-3 py-2 shadow-lg text-sm min-w-36">
+    <div className="rounded-md border border-linie bg-karte px-3 py-2 shadow-sm text-sm min-w-36">
       <p className="text-text2 mb-1">{titel}</p>
       {zeilen.map(z => (
         <p key={z.label} className="flex items-center gap-2">

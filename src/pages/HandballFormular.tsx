@@ -62,7 +62,7 @@ export function HandballFormular({ id }: { id: string }) {
           <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="RPE">
             {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
               <button key={n} type="button" role="radio" aria-checked={h.rpe === n} aria-label={`RPE ${n}, ${RPE_TEXT[n]}`} onClick={() => setH({ ...h, rpe: n })}
-                className={`h-12 rounded-xl text-lg font-bold border ${h.rpe === n ? "bg-handball text-white border-handball" : "border-linie bg-karte2"}`}>{n}</button>
+                className={`h-12 rounded-md text-lg font-semibold border ${h.rpe === n ? "bg-akzent text-akzent-text border-akzent" : "border-linie bg-karte"}`}>{n}</button>
             ))}
           </div>
         </div>

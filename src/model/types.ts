@@ -2,19 +2,33 @@
 
 export type Id = string;
 
+/** Wie eine Übung gemessen wird. Fehlt das Feld, ist es eine Gewichtsübung. */
+export type UebungsArt = "gewicht" | "koerpergewicht" | "zeit";
+export const UEBUNGSARTEN: { wert: UebungsArt; label: string; text: string }[] = [
+  { wert: "gewicht", label: "Gewicht", text: "Wiederholungen × Gewicht, z. B. Bankdrücken" },
+  { wert: "koerpergewicht", label: "Körpergewicht", text: "Wiederholungen, optional mit Zusatzgewicht, z. B. Klimmzüge, Dips" },
+  { wert: "zeit", label: "Zeit", text: "Dauer in Sekunden, optional mit Zusatzgewicht, z. B. Plank" },
+];
+
 export interface Uebung {
   id: Id;
   name: string;
   kategorie: string;
+  art?: UebungsArt;
   notiz?: string;
   beispiel?: boolean;
   /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */
   geaendert?: number;
 }
 
+/**
+ * Ein Satz. Bei Körpergewicht- und Zeitübungen ist `kg` das Zusatzgewicht (0 = ohne).
+ * Bei Zeitübungen steht die Dauer in `sek`, `wdh` ist dann 0.
+ */
 export interface Satz {
   wdh: number;
   kg: number;
+  sek?: number;
 }
 
 export interface UebungsEintrag {
@@ -37,6 +51,8 @@ export interface VorlagenUebung {
   uebungId: Id;
   zielSaetze?: number;
   zielWdh?: number;
+  /** Bei Zeitübungen: Ziel-Dauer pro Satz in Sekunden */
+  zielSek?: number;
 }
 
 export interface Vorlage {
