@@ -5,6 +5,7 @@ import App from "./App";
 import { RueckmeldungProvider } from "./components/Rueckmeldung";
 import { db } from "./db/schema";
 import { legeBeispieldatenAn } from "./db/repo";
+import { starteSynchronisierung } from "./sync/instanz";
 import "./index.css";
 
 // Beim allerersten Start Beispieldaten anlegen, damit die Diagramme sofort etwas zeigen.
@@ -14,9 +15,9 @@ async function ersterStart() {
     if (localStorage.getItem(SCHLUESSEL)) return;
     localStorage.setItem(SCHLUESSEL, "1");
   } catch { return; }
-  if ((await db.uebungen.count()) === 0 && (await db.kraftEinheiten.count()) === 0) await legeBeispieldatenAn();
+  if ((await db.uebungen.count()) === 0 && (await db.kraftEinheiten.count()) === 0) await legeBeispieldatenAn({ automatisch: true });
 }
-ersterStart();
+ersterStart().finally(starteSynchronisierung);
 
 registerSW({ immediate: true });
 
