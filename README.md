@@ -26,7 +26,7 @@ Danach startet die App vom Home-Bildschirm im Vollbild und läuft auch ohne Inte
 
 Die Daten werden über ein **privates Gist** in deinem GitHub-Konto zwischen Handy, Tablet und Computer abgeglichen. Kein eigener Server, kostenlos. Einmal pro Gerät:
 
-1. [Fine-grained Token erstellen](https://github.com/settings/personal-access-tokens/new): Namen und Ablaufdatum wählen, unter **Permissions → Account permissions → Gists** „Read and write“ wählen. Sonst nichts. „Generate token“ und kopieren.
+1. [Token erstellen](https://github.com/settings/personal-access-tokens/new?name=Trainingstagebuch-Sync&description=Synchronisierung%20Trainingstagebuch%20(nur%20Gists)&expires_in=366&gists=write) – der Link füllt Name, Ablauf (1 Jahr) und die einzige nötige Berechtigung **Gists** schon aus. Ganz unten „Generate token“ und das Token kopieren. Von Hand: unter „Permissions“ auf „Add permissions“, „Gists“ anhaken (es gibt dort nur eine Stufe, sie schließt Lesen ein), bei „Repository access“ nichts ändern.
 2. In der App **Übungen › Daten › Synchronisierung** das Token einfügen und „Verbinden“ tippen.
 
 Das erste Gerät legt das Gist an, weitere Geräte finden es automatisch. Das Token der Karteikarten-App funktioniert ebenfalls, denn es braucht dieselbe Berechtigung.
