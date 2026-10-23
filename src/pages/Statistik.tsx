@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useHandballEinheiten, useKraftEinheiten, useUebungen, useUebungsMap } from "../db/hooks";
 import { formatKurz, formatMittel, heute, plusTage, tageZwischen, wochenStart } from "../logic/datum";
-import { bestleistungen, fmt, kalender, runde, sessionRpe, verlauf, wochenBelastung, wochenVolumen, type VerlaufsPunkt } from "../logic/metriken";
+import { bestleistungen, fmt, fmtSek, kalender, runde, satzText, sessionRpe, verlauf, wochenBelastung, wochenVolumen, type Bestleistung, type VerlaufsPunkt } from "../logic/metriken";
+import type { Satz, UebungsArt } from "../model/types";
 import { Abschnitt, Inhalt, Karte, Leer, Segmente, Seitenkopf, eingabeKlasse } from "../components/ui";
 import { BeispielHinweis } from "../components/BeispielHinweis";
 import { VerlaufChart, type Punkt } from "../charts/VerlaufChart";
@@ -27,10 +28,79 @@ function Kachel({ titel, wert, unter }: { titel: string; wert: string; unter?: s
   return (
     <Karte className="!p-3">
       <p className="text-xs text-text2">{titel}</p>
-      <p className="text-xl font-bold leading-tight">{wert}</p>
+      <p className="text-xl font-semibold leading-tight">{wert}</p>
       {unter && <p className="text-xs text-muted">{unter}</p>}
     </Karte>
   );
+}
+
+const zusatz = (kg: number) => (kg > 0 ? ` (+${fmt(kg)} kg)` : "");
+
+interface Kurve { titel: string; untertitel: string; einheit: string; hinweis?: string; wert: (p: VerlaufsPunkt) => number; info: (p: VerlaufsPunkt) => string }
+interface Ansicht {
+  kacheln: { titel: string; wert: string; unter?: string }[];
+  kurven: Kurve[];
+  woche: { titel: string; untertitel: string; label: string; einheit: string; wert: (s: Satz) => number };
+}
+
+/** Kennzahlen und Kurven je nach Übungsart. */
+function ansichtFuer(art: UebungsArt, punkte: VerlaufsPunkt[], b: Bestleistung): Ansicht {
+  const maxProEinheit = (f: (p: VerlaufsPunkt) => number) => punkte.reduce<VerlaufsPunkt | null>((m, p) => (!m || f(p) > f(m) ? p : m), null);
+  if (art === "koerpergewicht") {
+    const mitZusatz = punkte.some(p => p.maxKg > 0);
+    const summe = maxProEinheit(p => p.summeWdh);
+    return {
+      kacheln: [
+        { titel: "Meiste Wdh. (Satz)", wert: b.maxWdh ? `${b.maxWdh.wdh}` : "–", unter: b.maxWdh && `${zusatz(b.maxWdh.kg).trim() || "ohne Zusatz"} · ${formatKurz(b.maxWdh.datum)}` },
+        { titel: "Höchstes Zusatzgewicht", wert: b.maxKg && b.maxKg.kg > 0 ? `${fmt(b.maxKg.kg)} kg` : "–", unter: b.maxKg && b.maxKg.kg > 0 ? `${b.maxKg.wdh} Wdh. · ${formatKurz(b.maxKg.datum)}` : undefined },
+        { titel: "Meiste Wdh. (Einheit)", wert: summe ? `${summe.summeWdh}` : "–", unter: summe ? formatKurz(summe.datum) : undefined },
+      ],
+      kurven: [
+        { titel: "Wiederholungen", untertitel: "bester Satz pro Einheit", einheit: "Wdh.", wert: p => p.maxWdh, info: p => `Wdh. gesamt: ${p.summeWdh}` },
+        mitZusatz
+          ? { titel: "Zusatzgewicht", untertitel: "schwerster Satz pro Einheit", einheit: "kg", wert: p => p.maxKg, info: p => `${p.wdhBeiMax} Wdh. mit +${fmt(p.maxKg)} kg` }
+          : { titel: "Wiederholungen gesamt", untertitel: "pro Einheit", einheit: "Wdh.", wert: p => p.summeWdh, info: p => `Bester Satz: ${p.maxWdh} Wdh.` },
+      ],
+      woche: { titel: "Wiederholungen pro Woche", untertitel: "Summe aller Sätze", label: "Wiederholungen", einheit: "Wdh.", wert: s => s.wdh },
+    };
+  }
+  if (art === "zeit") {
+    const summe = maxProEinheit(p => p.summeSek);
+    return {
+      kacheln: [
+        { titel: "Längste Dauer", wert: b.maxSek ? fmtSek(b.maxSek.sek) : "–", unter: b.maxSek && `${zusatz(b.maxSek.kg).trim() || "ohne Zusatz"} · ${formatKurz(b.maxSek.datum)}` },
+        { titel: "Höchstes Zusatzgewicht", wert: b.maxKg && b.maxKg.kg > 0 ? `${fmt(b.maxKg.kg)} kg` : "–", unter: b.maxKg && b.maxKg.kg > 0 ? formatKurz(b.maxKg.datum) : undefined },
+        { titel: "Längste Gesamtdauer", wert: summe ? fmtSek(summe.summeSek) : "–", unter: summe ? formatKurz(summe.datum) : undefined },
+      ],
+      kurven: [
+        { titel: "Dauer", untertitel: "längster Satz pro Einheit", einheit: "s", wert: p => p.maxSek, info: p => `Gesamt: ${fmtSek(p.summeSek)}` },
+        { titel: "Gesamtdauer", untertitel: "pro Einheit", einheit: "s", wert: p => p.summeSek, info: p => `Längster Satz: ${fmtSek(p.maxSek)}` },
+      ],
+      woche: { titel: "Dauer pro Woche", untertitel: "Summe aller Sätze", label: "Dauer", einheit: "s", wert: s => s.sek ?? 0 },
+    };
+  }
+  return {
+    kacheln: [
+      { titel: "Schwerster Satz", wert: b.maxKg ? `${fmt(b.maxKg.kg)} kg` : "–", unter: b.maxKg && `${b.maxKg.wdh} Wdh. · ${formatKurz(b.maxKg.datum)}` },
+      { titel: "Bestes 1RM (geschätzt)", wert: b.e1rm ? `${fmt(runde(b.e1rm.wert))} kg` : "–", unter: b.e1rm && `${b.e1rm.wdh} × ${fmt(b.e1rm.kg)} kg · ${formatKurz(b.e1rm.datum)}` },
+      { titel: "Bestes Volumen", wert: b.volumen ? `${fmt(b.volumen.wert)} kg` : "–", unter: b.volumen && formatKurz(b.volumen.datum) },
+    ],
+    kurven: [
+      { titel: "Gewichtsverlauf", untertitel: "schwerster Satz pro Einheit", einheit: "kg", wert: p => p.maxKg, info: p => `Schwerster Satz: ${p.wdhBeiMax} × ${fmt(p.maxKg)} kg` },
+      { titel: "Geschätztes 1RM", untertitel: "Epley", einheit: "kg", hinweis: "Gewicht × (1 + Wdh./30), bester Satz pro Einheit.", wert: p => p.e1rm, info: p => `Volumen ${fmt(p.volumen)} kg` },
+    ],
+    woche: { titel: "Wochenvolumen", untertitel: "Wdh. × Gewicht", label: "Volumen", einheit: "kg", wert: s => s.wdh * s.kg },
+  };
+}
+
+function besterSatz(art: UebungsArt | undefined, b: Bestleistung) {
+  if (art === "koerpergewicht") return b.maxWdh ? satzText({ wdh: b.maxWdh.wdh, kg: b.maxWdh.kg }, art) : "–";
+  if (art === "zeit") return b.maxSek ? satzText({ wdh: 0, kg: b.maxSek.kg, sek: b.maxSek.sek }, art) : "–";
+  return b.maxKg ? `${b.maxKg.wdh} × ${fmt(b.maxKg.kg)} kg` : "–";
+}
+function besterSatzDatum(art: UebungsArt | undefined, b: Bestleistung) {
+  const d = art === "koerpergewicht" ? b.maxWdh?.datum : art === "zeit" ? b.maxSek?.datum : b.maxKg?.datum;
+  return d ? formatMittel(d) : "";
 }
 
 export default function Statistik() {
@@ -63,11 +133,14 @@ export default function Statistik() {
 
   const kraftImZeitraum = kraft.filter(e => e.datum >= von);
   const punkte = verlauf(kraft, uebungId); // Rekorde über die ganze Historie bestimmen, dann zuschneiden
-  const gewicht = mitRekorden(punkte, p => p.maxKg, p => `Schwerster Satz: ${p.wdhBeiMax} × ${fmt(p.maxKg)} kg`).filter(p => p.datum >= von);
-  const e1rm = mitRekorden(punkte, p => p.e1rm, p => `Volumen ${fmt(p.volumen)} kg`).filter(p => p.datum >= von);
+  const art: UebungsArt = uebung?.art ?? "gewicht";
   const best = bestleistungen(kraft, uebungId);
+  const ansicht = ansichtFuer(art, punkte, best);
+  const kurven = ansicht.kurven.map(k => ({ ...k, daten: mitRekorden(punkte, k.wert, k.info).filter(p => p.datum >= von) }));
 
-  const volumen = wochenVolumen(kraft, volumenFilter === "uebung" ? uebungId : null, h, wochen).map(w => ({ ...w }));
+  const proUebung = volumenFilter === "uebung";
+  const volumen = wochenVolumen(kraft, proUebung ? uebungId : null, h, wochen, proUebung ? ansicht.woche.wert : undefined).map(w => ({ ...w }));
+  const wocheEinheit = proUebung ? ansicht.woche.einheit : "kg";
   const belastung = wochenBelastung(handball, h, wochen).map(w => ({ ...w }));
   const hbImZeitraum = handball.filter(x => x.datum >= von);
   const schnittLast = belastung.reduce((s, w) => s + w.gesamt, 0) / belastung.length;
@@ -94,36 +167,33 @@ export default function Statistik() {
         {mitDaten.length > 0 && (
           <Abschnitt titel="Krafttraining">
             <select aria-label="Übung wählen" className={eingabeKlasse} value={uebungId} onChange={e => setUebung(e.target.value)}>
-              {mitDaten.map(u => <option key={u.id} value={u.id}>{u.name} ({haeufig.get(u.id)}×)</option>)}
+              {mitDaten.map(u => <option key={u.id} value={u.id}>{u.name} ({haeufig.get(u.id)}×){u.art === "zeit" ? " · Zeit" : u.art === "koerpergewicht" ? " · Körpergewicht" : ""}</option>)}
             </select>
 
             <div className="grid grid-cols-2 gap-2">
-              <Kachel titel="Schwerster Satz" wert={best.maxKg ? `${fmt(best.maxKg.kg)} kg` : "–"} unter={best.maxKg && `${best.maxKg.wdh} Wdh. · ${formatKurz(best.maxKg.datum)}`} />
-              <Kachel titel="Bestes 1RM (geschätzt)" wert={best.e1rm ? `${fmt(runde(best.e1rm.wert))} kg` : "–"} unter={best.e1rm && `${best.e1rm.wdh} × ${fmt(best.e1rm.kg)} kg · ${formatKurz(best.e1rm.datum)}`} />
-              <Kachel titel="Bestes Volumen" wert={best.volumen ? `${fmt(best.volumen.wert)} kg` : "–"} unter={best.volumen && formatKurz(best.volumen.datum)} />
+              {ansicht.kacheln.map(k => <Kachel key={k.titel} {...k} />)}
               <Kachel titel="Einheiten gesamt" wert={String(best.einheiten)} />
             </div>
 
-            <Karte className="space-y-2">
-              <h3 className="font-semibold">Gewichtsverlauf <span className="font-normal text-text2">· schwerster Satz pro Einheit</span></h3>
-              <VerlaufChart daten={gewicht} label={`Gewicht ${uebung?.name ?? ""}`} />
-              <Legende eintraege={[{ farbe: f.kraft, label: "Schwerster Satz", form: "linie" }, { farbe: f.rekord, label: "Neue Bestleistung" }]} />
-            </Karte>
-
-            <Karte className="space-y-2">
-              <h3 className="font-semibold">Geschätztes 1RM <span className="font-normal text-text2">· Epley</span></h3>
-              <VerlaufChart daten={e1rm} label="1RM" />
-              <p className="text-xs text-muted">Gewicht × (1 + Wdh./30), bester Satz pro Einheit.</p>
-            </Karte>
+            {kurven.map((k, i) => (
+              <Karte key={k.titel} className="space-y-2">
+                <h3 className="font-semibold">{k.titel} <span className="font-normal text-text2">· {k.untertitel}</span></h3>
+                <VerlaufChart daten={k.daten} label={`${k.titel} ${uebung?.name ?? ""}`} einheit={k.einheit} />
+                {i === 0
+                  ? <Legende eintraege={[{ farbe: f.kraft, label: k.titel, form: "linie" }, { farbe: f.rekord, label: "Neue Bestleistung" }]} />
+                  : k.hinweis && <p className="text-xs text-muted">{k.hinweis}</p>}
+              </Karte>
+            ))}
           </Abschnitt>
         )}
 
         {kraft.length > 0 && (
           <Karte className="space-y-3">
-            <h3 className="font-semibold">Wochenvolumen <span className="font-normal text-text2">· Wdh. × Gewicht</span></h3>
+            <h3 className="font-semibold">{proUebung && art !== "gewicht" ? ansicht.woche.titel : "Wochenvolumen"} <span className="font-normal text-text2">· {proUebung && art !== "gewicht" ? ansicht.woche.untertitel : "Wdh. × Gewicht"}</span></h3>
             <Segmente label="Volumen-Filter" wert={volumenFilter} onChange={setVolumenFilter}
               werte={[{ wert: "gesamt", label: "Alle Übungen" }, { wert: "uebung", label: uebung?.name ?? "Übung" }]} />
-            <WochenChart daten={volumen} einheit="kg" serien={[{ schluessel: "volumen", label: "Volumen", farbe: f.kraft }]} />
+            <WochenChart daten={volumen} einheit={wocheEinheit} serien={[{ schluessel: "volumen", label: proUebung ? ansicht.woche.label : "Volumen", farbe: f.kraft }]} />
+            {!proUebung && <p className="text-xs text-muted">Bei Körpergewicht-Übungen zählt nur das Zusatzgewicht, Zeitübungen zählen nicht mit.</p>}
           </Karte>
         )}
 
@@ -153,14 +223,14 @@ export default function Statistik() {
             <Karte className="!p-0 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="text-text2 text-left">
-                  <tr className="border-b border-linie"><th className="p-3 font-medium">Übung</th><th className="p-3 font-medium text-right">Schwerster Satz</th><th className="p-3 font-medium text-right">1RM</th></tr>
+                  <tr className="border-b border-linie"><th className="p-3 font-medium">Übung</th><th className="p-3 font-medium text-right">Bester Satz</th><th className="p-3 font-medium text-right">1RM</th></tr>
                 </thead>
                 <tbody className="tabular">
                   {alleBest.map(({ u, b }) => (
                     <tr key={u.id} className="border-b border-linie last:border-0">
                       <td className="p-3">{u.name}</td>
-                      <td className="p-3 text-right whitespace-nowrap">{b.maxKg ? `${b.maxKg.wdh} × ${fmt(b.maxKg.kg)} kg` : "–"}<span className="block text-xs text-muted">{b.maxKg && formatMittel(b.maxKg.datum)}</span></td>
-                      <td className="p-3 text-right font-semibold whitespace-nowrap">{b.e1rm ? `${fmt(runde(b.e1rm.wert))} kg` : "–"}</td>
+                      <td className="p-3 text-right whitespace-nowrap">{besterSatz(u.art, b)}<span className="block text-xs text-muted">{besterSatzDatum(u.art, b)}</span></td>
+                      <td className="p-3 text-right font-semibold whitespace-nowrap">{(u.art ?? "gewicht") === "gewicht" && b.e1rm ? `${fmt(runde(b.e1rm.wert))} kg` : "–"}</td>
                     </tr>
                   ))}
                 </tbody>

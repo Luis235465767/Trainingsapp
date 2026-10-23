@@ -4,9 +4,11 @@ import { epley, sessionRpe } from "./metriken";
 
 // Semikolon und Dezimalkomma, damit Excel mit deutscher Einstellung die Datei direkt richtig öffnet.
 const SPALTEN = [
-  "Typ", "Datum", "Übung", "Kategorie", "Satz", "Wiederholungen", "Gewicht (kg)", "Volumen (kg)",
+  "Typ", "Datum", "Übung", "Kategorie", "Übungsart", "Satz", "Wiederholungen", "Gewicht (kg)", "Dauer (s)", "Volumen (kg)",
   "1RM geschätzt (kg)", "Art", "Dauer (min)", "RPE", "Session-RPE", "Notiz",
 ] as const;
+
+const ARTNAME = { gewicht: "Gewicht", koerpergewicht: "Körpergewicht", zeit: "Zeit" } as const;
 
 const zahl = (x: number | undefined) => (x === undefined ? "" : String(Math.round(x * 100) / 100).replace(".", ","));
 
@@ -21,11 +23,13 @@ export function alsCsv(b: Pick<Backup, "uebungen" | "kraftEinheiten" | "vorlagen
   for (const e of kraft) {
     for (const eintrag of e.eintraege) {
       const u = uebung.get(eintrag.uebungId);
+      const art = u?.art ?? "gewicht";
       eintrag.saetze.forEach((s: Satz, i) =>
         zeile({
-          Typ: "Kraft", Datum: e.datum, "Übung": u?.name ?? "(gelöscht)", Kategorie: u?.kategorie ?? "",
-          Satz: String(i + 1), Wiederholungen: String(s.wdh), "Gewicht (kg)": zahl(s.kg),
-          "Volumen (kg)": zahl(s.wdh * s.kg), "1RM geschätzt (kg)": zahl(epley(s.kg, s.wdh)), Notiz: e.notiz ?? "",
+          Typ: "Kraft", Datum: e.datum, "Übung": u?.name ?? "(gelöscht)", Kategorie: u?.kategorie ?? "", "Übungsart": ARTNAME[art],
+          Satz: String(i + 1), Wiederholungen: art === "zeit" ? "" : String(s.wdh), "Gewicht (kg)": zahl(s.kg),
+          "Dauer (s)": art === "zeit" || s.sek ? String(s.sek ?? 0) : "",
+          "Volumen (kg)": zahl(s.wdh * s.kg), "1RM geschätzt (kg)": art === "gewicht" ? zahl(epley(s.kg, s.wdh)) : "", Notiz: e.notiz ?? "",
         }),
       );
     }
@@ -42,11 +46,12 @@ export function alsCsv(b: Pick<Backup, "uebungen" | "kraftEinheiten" | "vorlagen
       const u = uebung.get(x.uebungId);
       zeile({
         Typ: `Vorlage: ${v.name}`, "Übung": u?.name ?? "(gelöscht)", Kategorie: u?.kategorie ?? "", Satz: String(i + 1),
-        Wiederholungen: x.zielWdh ? String(x.zielWdh) : "", Notiz: x.zielSaetze ? `${x.zielSaetze} Sätze` : "",
+        "Übungsart": ARTNAME[u?.art ?? "gewicht"], Wiederholungen: x.zielWdh ? String(x.zielWdh) : "", "Dauer (s)": x.zielSek ? String(x.zielSek) : "",
+        Notiz: x.zielSaetze ? `${x.zielSaetze} Sätze` : "",
       });
     });
   }
-  for (const u of b.uebungen) zeile({ Typ: "Übung", "Übung": u.name, Kategorie: u.kategorie, Notiz: u.notiz ?? "" });
+  for (const u of b.uebungen) zeile({ Typ: "Übung", "Übung": u.name, Kategorie: u.kategorie, "Übungsart": ARTNAME[u.art ?? "gewicht"], Notiz: u.notiz ?? "" });
 
   return "﻿" + [SPALTEN as readonly string[], ...zeilen].map(z => z.map(csvFeld).join(";")).join("\r\n") + "\r\n";
 }
@@ -68,7 +73,7 @@ function liste<T>(daten: Record<string, unknown>, feld: string, pruefe: (x: any)
   return a as T[];
 }
 
-const satzOk = (s: any) => s && istZahl(s.wdh) && istZahl(s.kg);
+const satzOk = (s: any) => s && istZahl(s.wdh) && istZahl(s.kg) && optZahl(s.sek);
 
 /** Liest ein Backup ein und prüft alles, bevor etwas überschrieben wird. Wirft Fehler mit deutscher Meldung. */
 export function pruefeBackup(text: string): Backup {
@@ -84,13 +89,13 @@ export function pruefeBackup(text: string): Backup {
   const d = daten as Record<string, unknown>;
   if (d.version !== 1) throw new Error(`Unbekannte Backup-Version: ${String(d.version)}.`);
 
-  const uebungen = liste<Uebung>(d, "uebungen", u => istText(u.name) && istText(u.kategorie) && optText(u.notiz));
+  const uebungen = liste<Uebung>(d, "uebungen", u => istText(u.name) && istText(u.kategorie) && optText(u.notiz) && (u.art === undefined || u.art === null || ["gewicht", "koerpergewicht", "zeit"].includes(u.art)));
   const kraftEinheiten = liste<KraftEinheit>(d, "kraftEinheiten", e =>
     istTag(e.datum) && optText(e.notiz) && Array.isArray(e.eintraege) &&
     e.eintraege.every((x: any) => x && istText(x.uebungId) && Array.isArray(x.saetze) && x.saetze.every(satzOk)));
   const vorlagen = liste<Vorlage>(d, "vorlagen", v =>
     istText(v.name) && Array.isArray(v.uebungen) &&
-    v.uebungen.every((x: any) => x && istText(x.uebungId) && optZahl(x.zielSaetze) && optZahl(x.zielWdh)));
+    v.uebungen.every((x: any) => x && istText(x.uebungId) && optZahl(x.zielSaetze) && optZahl(x.zielWdh) && optZahl(x.zielSek)));
   const handballEinheiten = liste<HandballEinheit>(d, "handballEinheiten", h =>
     istTag(h.datum) && (h.art === "Training" || h.art === "Spiel") && istZahl(h.dauerMin) && istZahl(h.rpe) && optText(h.notiz));
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { epley, letztesMal, pruefeRekord, schwersterSatz, sessionRpe, verlauf, volumen, wochenBelastung, wochenVolumen, bestleistungen, kalender } from "../src/logic/metriken";
+import { epley, fmtSek, gueltig, letztesMal, pruefeRekord, satzText, schwersterSatz, sessionRpe, verlauf, volumen, wochenBelastung, wochenVolumen, bestleistungen, kalender } from "../src/logic/metriken";
 import { kalenderwoche, plusTage, wochenStart } from "../src/logic/datum";
 import { alsCsv, pruefeBackup } from "../src/logic/export";
 import { erzeugeBeispieldaten } from "../src/seed/beispieldaten";
@@ -67,16 +67,16 @@ describe("Verlauf und Bestleistungen", () => {
 describe("Rekorde", () => {
   const frueher = [{ wdh: 5, kg: 100 }];
   it("schwerer = Gewichtsrekord", () => {
-    expect(pruefeRekord({ wdh: 1, kg: 102.5 }, frueher, [])).toEqual({ gewicht: true, e1rm: false });
+    expect(pruefeRekord({ wdh: 1, kg: 102.5 }, frueher, [])).toEqual({ gewicht: true, e1rm: false, wdh: false, zeit: false });
   });
   it("mehr Wdh = 1RM-Rekord", () => {
-    expect(pruefeRekord({ wdh: 7, kg: 100 }, frueher, [])).toEqual({ gewicht: false, e1rm: true });
+    expect(pruefeRekord({ wdh: 7, kg: 100 }, frueher, [])).toEqual({ gewicht: false, e1rm: true, wdh: false, zeit: false });
   });
   it("gleicher Satz zweimal in einer Einheit zählt nur einmal", () => {
-    expect(pruefeRekord({ wdh: 5, kg: 105 }, frueher, [{ wdh: 5, kg: 105 }])).toEqual({ gewicht: false, e1rm: false });
+    expect(pruefeRekord({ wdh: 5, kg: 105 }, frueher, [{ wdh: 5, kg: 105 }])).toEqual({ gewicht: false, e1rm: false, wdh: false, zeit: false });
   });
   it("ohne frühere Daten kein Rekord", () => {
-    expect(pruefeRekord({ wdh: 5, kg: 105 }, [], [])).toEqual({ gewicht: false, e1rm: false });
+    expect(pruefeRekord({ wdh: 5, kg: 105 }, [], [])).toEqual({ gewicht: false, e1rm: false, wdh: false, zeit: false });
   });
 });
 
@@ -128,8 +128,55 @@ describe("Export und Backup", () => {
       vorlagen: [], handballEinheiten: [{ id: "h", datum: "2026-10-02", art: "Spiel", dauerMin: 60, rpe: 8 }],
     });
     const zeilen = csv.replace("﻿", "").trim().split("\r\n");
-    expect(zeilen[0].startsWith("Typ;Datum;Übung")).toBe(true);
-    expect(zeilen[1]).toBe('Kraft;2026-10-01;"Bank; eng";Brust;1;5;62,5;312,5;72,92;;;;;"sagte ""gut"""');
-    expect(zeilen[2]).toBe("Handball;2026-10-02;;;;;;;;Spiel;60;8;480;");
+    expect(zeilen[0].startsWith("Typ;Datum;Übung;Kategorie;Übungsart;Satz;Wiederholungen;Gewicht (kg);Dauer (s)")).toBe(true);
+    expect(zeilen[1]).toBe('Kraft;2026-10-01;"Bank; eng";Brust;Gewicht;1;5;62,5;;312,5;72,92;;;;;"sagte ""gut"""');
+    expect(zeilen[2]).toBe("Handball;2026-10-02;;;;;;;;;;Spiel;60;8;480;");
+  });
+});
+
+describe("Körpergewicht und Zeit", () => {
+  it("Satztexte je nach Art", () => {
+    expect(satzText({ wdh: 5, kg: 62.5 })).toBe("5×62,5 kg");
+    expect(satzText({ wdh: 12, kg: 0 }, "koerpergewicht")).toBe("12 Wdh.");
+    expect(satzText({ wdh: 8, kg: 10 }, "koerpergewicht")).toBe("8 Wdh. (+10 kg)");
+    expect(satzText({ wdh: 0, kg: 0, sek: 45 }, "zeit")).toBe("45 s");
+    expect(fmtSek(90)).toBe("1:30 min");
+  });
+  it("Zeitsätze zählen ohne Wiederholungen", () => {
+    expect(gueltig({ wdh: 0, kg: 0, sek: 30 })).toBe(true);
+    expect(gueltig({ wdh: 0, kg: 0 })).toBe(false);
+  });
+  it("Körpergewicht: mehr Wiederholungen bei gleichem oder höherem Zusatz sind ein Rekord", () => {
+    const frueher = [{ wdh: 10, kg: 0 }, { wdh: 6, kg: 10 }];
+    expect(pruefeRekord({ wdh: 11, kg: 0 }, frueher, [], "koerpergewicht")).toMatchObject({ wdh: true, gewicht: false, e1rm: false });
+    expect(pruefeRekord({ wdh: 7, kg: 0 }, frueher, [], "koerpergewicht").wdh).toBe(false);
+    expect(pruefeRekord({ wdh: 7, kg: 10 }, frueher, [], "koerpergewicht").wdh).toBe(true); // 7 > 6 bei +10 kg
+    expect(pruefeRekord({ wdh: 3, kg: 12.5 }, frueher, [], "koerpergewicht")).toMatchObject({ gewicht: true, wdh: true });
+  });
+  it("Zeit: längere Dauer ist ein Rekord", () => {
+    const frueher = [{ wdh: 0, kg: 0, sek: 60 }];
+    expect(pruefeRekord({ wdh: 0, kg: 0, sek: 65 }, frueher, [], "zeit")).toMatchObject({ zeit: true, e1rm: false });
+    expect(pruefeRekord({ wdh: 0, kg: 0, sek: 60 }, frueher, [], "zeit").zeit).toBe(false);
+  });
+  it("Verlauf und Bestleistungen für Körpergewicht und Zeit", () => {
+    const daten = [e("1", "2026-10-01", [[8, 0], [6, 0]], "klimm"), e("2", "2026-10-08", [[10, 0]], "klimm")];
+    expect(verlauf(daten, "klimm").map(p => [p.maxWdh, p.summeWdh])).toEqual([[8, 14], [10, 10]]);
+    expect(bestleistungen(daten, "klimm").maxWdh).toEqual({ wdh: 10, kg: 0, datum: "2026-10-08" });
+    const plank: KraftEinheit = { id: "p", datum: "2026-10-02", eintraege: [{ uebungId: "plank", saetze: [{ wdh: 0, kg: 0, sek: 45 }, { wdh: 0, kg: 0, sek: 30 }] }] };
+    expect(verlauf([plank], "plank")[0]).toMatchObject({ maxSek: 45, summeSek: 75, volumen: 0 });
+    expect(bestleistungen([plank], "plank").maxSek).toEqual({ sek: 45, kg: 0, datum: "2026-10-02" });
+  });
+  it("Wochensumme mit eigener Größe (z. B. Sekunden)", () => {
+    const plank: KraftEinheit = { id: "p", datum: "2026-10-20", eintraege: [{ uebungId: "plank", saetze: [{ wdh: 0, kg: 0, sek: 45 }, { wdh: 0, kg: 0, sek: 30 }] }] };
+    expect(wochenVolumen([plank], "plank", "2026-10-21", 1, s => s.sek ?? 0)).toEqual([{ woche: "2026-10-19", volumen: 75 }]);
+    expect(wochenVolumen([plank], null, "2026-10-21", 1)).toEqual([{ woche: "2026-10-19", volumen: 0 }]);
+  });
+  it("Beispieldaten enthalten gültige Körpergewicht- und Zeitsätze", () => {
+    const d = erzeugeBeispieldaten("2026-10-20");
+    const art = new Map(d.uebungen.map(u => [u.id, u.art ?? "gewicht"]));
+    const saetze = d.kraftEinheiten.flatMap(k => k.eintraege.map(x => ({ art: art.get(x.uebungId), saetze: x.saetze })));
+    expect(saetze.filter(x => x.art === "zeit").every(x => x.saetze.every(s => (s.sek ?? 0) > 0 && s.wdh === 0))).toBe(true);
+    expect(saetze.filter(x => x.art === "koerpergewicht").every(x => x.saetze.every(s => s.wdh > 0 && s.kg >= 0))).toBe(true);
+    expect(saetze.some(x => x.art === "zeit")).toBe(true);
   });
 });

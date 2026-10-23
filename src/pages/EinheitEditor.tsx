@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import type { KraftEinheit, Satz, Uebung, VorlagenUebung } from "../model/types";
+import type { KraftEinheit, Satz, Uebung, UebungsArt, VorlagenUebung } from "../model/types";
 import { db } from "../db/schema";
 import { loescheKraft, speichereKraft } from "../db/repo";
 import { useKraftEinheiten, useUebungsMap } from "../db/hooks";
 import { aktiveEinheit, setzeAktiveEinheit } from "../logic/aktiv";
 import { formatKurz, formatTag } from "../logic/datum";
-import { fmt, fruehereSaetze, gueltig, letztesMal, pruefeRekord, volumen, type Rekord } from "../logic/metriken";
+import { fmt, fmtSek, fruehereSaetze, gueltig, istRekord, letztesMal, pruefeRekord, rekordText, satzText, volumen, type Rekord } from "../logic/metriken";
 import { Button, IconButton, Inhalt, Karte, Seitenkopf, ZahlFeld, eingabeKlasse } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { UebungsAuswahl } from "../components/UebungsAuswahl";
+import { UebungsFormular } from "../components/UebungsFormular";
 import { useRueckmeldung } from "../components/Rueckmeldung";
 import { navigiere } from "../router";
 
-const satzText = (s: Satz) => `${s.wdh}×${fmt(s.kg)}`;
+const artVon = (u?: Uebung): UebungsArt => u?.art ?? "gewicht";
 
 export function EinheitEditor({ id }: { id: string }) {
   const [einheit, setEinheit] = useState<KraftEinheit | null | undefined>(undefined);
@@ -23,6 +24,7 @@ export function EinheitEditor({ id }: { id: string }) {
   const vorlage = useLiveQuery(async () => (einheit?.vorlageId ? (await db.vorlagen.get(einheit.vorlageId)) ?? null : null), [einheit?.vorlageId]);
   const { melde, frage } = useRueckmeldung();
   const [auswahl, setAuswahl] = useState(false);
+  const [bearbeite, setBearbeite] = useState<Uebung | undefined>();
   const istAktiv = aktiveEinheit() === id;
 
   useEffect(() => {
@@ -40,18 +42,18 @@ export function EinheitEditor({ id }: { id: string }) {
   // Rekorde aller Sätze berechnen
   const rekorde = useMemo(() => {
     const r = new Map<string, Rekord>();
-    if (!einheit || !alle) return r;
+    if (!einheit || !alle || !map) return r;
     const bisher = new Map<string, Satz[]>();
     einheit.eintraege.forEach((x, i) => {
       const frueher = fruehereSaetze(alle, x.uebungId, einheit.id, einheit.datum);
       x.saetze.forEach((s, j) => {
         const vorher = bisher.get(x.uebungId) ?? [];
-        r.set(`${i}-${j}`, pruefeRekord(s, frueher, vorher));
+        r.set(`${i}-${j}`, pruefeRekord(s, frueher, vorher, artVon(map.get(x.uebungId))));
         bisher.set(x.uebungId, [...vorher, s]);
       });
     });
     return r;
-  }, [einheit, alle]);
+  }, [einheit, alle, map]);
 
   // Neue Bestleistungen kurz hervorheben (mit Verzögerung, damit Zwischenstände beim Tippen nicht zählen)
   const bekannt = useRef<Set<string> | null>(null);
@@ -61,9 +63,9 @@ export function EinheitEditor({ id }: { id: string }) {
     const schluessel = (k: string, r: Rekord) => {
       const [i, j] = k.split("-").map(Number);
       const s = einheit.eintraege[i]?.saetze[j];
-      return s ? `${einheit.eintraege[i].uebungId}:${s.wdh}x${s.kg}:${r.gewicht ? "g" : ""}${r.e1rm ? "e" : ""}` : k;
+      return s ? `${einheit.eintraege[i].uebungId}:${s.wdh}x${s.kg}x${s.sek ?? 0}:${rekordText(r)}` : k;
     };
-    const jetzt = [...rekorde].filter(([, r]) => r.gewicht || r.e1rm);
+    const jetzt = [...rekorde].filter(([, r]) => istRekord(r));
     if (bekannt.current === null) { bekannt.current = new Set(jetzt.map(([k, r]) => schluessel(k, r))); return; }
     const t = setTimeout(() => {
       const neu = jetzt.filter(([k, r]) => !bekannt.current!.has(schluessel(k, r)));
@@ -72,8 +74,8 @@ export function EinheitEditor({ id }: { id: string }) {
       const [k, r] = neu[neu.length - 1];
       const [i, j] = k.split("-").map(Number);
       const s = einheit.eintraege[i].saetze[j];
-      const name = map.get(einheit.eintraege[i].uebungId)?.name ?? "";
-      melde(`Neue Bestleistung! ${name}: ${satzText(s)} kg${r.gewicht ? "" : " (1RM)"}`, "rekord");
+      const u = map.get(einheit.eintraege[i].uebungId);
+      melde(`Neue Bestleistung! ${u?.name ?? ""}: ${satzText(s, artVon(u))} – ${rekordText(r, artVon(u))}`, "rekord");
       setBlitz(new Set(neu.map(([k]) => k)));
       setTimeout(() => setBlitz(new Set()), 1300);
     }, 700);
@@ -99,9 +101,9 @@ export function EinheitEditor({ id }: { id: string }) {
     const letzter = x.saetze[x.saetze.length - 1];
     const vorher = letztesMal(alle, x.uebungId, einheit.id, einheit.datum);
     const ziel = vorlage?.uebungen.find(v => v.uebungId === x.uebungId);
-    const vorschlag: Satz = letzter
-      ? { ...letzter }
-      : vorher?.saetze[0] ? { ...vorher.saetze[0] } : { wdh: ziel?.zielWdh ?? 8, kg: 0 };
+    const art = artVon(map.get(x.uebungId));
+    const leer: Satz = art === "zeit" ? { wdh: 0, kg: 0, sek: ziel?.zielSek ?? 30 } : { wdh: ziel?.zielWdh ?? (art === "koerpergewicht" ? 10 : 8), kg: 0 };
+    const vorschlag: Satz = letzter ? { ...letzter } : vorher?.saetze[0] ? { ...vorher.saetze[0] } : leer;
     setzeSaetze(i, [...x.saetze, vorschlag]);
   };
 
@@ -133,7 +135,8 @@ export function EinheitEditor({ id }: { id: string }) {
     await speichereKraft(bereinigt);
     if (istAktiv) setzeAktiveEinheit(null);
     const saetze = bereinigt.eintraege.reduce((s, x) => s + x.saetze.length, 0);
-    melde(`Gespeichert: ${saetze} Sätze, ${fmt(volumen(bereinigt.eintraege.flatMap(x => x.saetze)))} kg Volumen`);
+    const vol = volumen(bereinigt.eintraege.flatMap(x => x.saetze));
+    melde(`Gespeichert: ${saetze} ${saetze === 1 ? "Satz" : "Sätze"}${vol > 0 ? `, ${fmt(vol)} kg Volumen` : ""}`);
     navigiere(istAktiv ? "/training" : "/verlauf", true);
   };
 
@@ -162,7 +165,8 @@ export function EinheitEditor({ id }: { id: string }) {
             vorher={letztesMal(alle, x.uebungId, einheit.id, einheit.datum)}
             rekorde={rekorde} blitz={blitz}
             onSaetze={s => setzeSaetze(i, s)} onHinzu={() => satzHinzufuegen(i)}
-            onHoch={() => verschiebe(i, -1)} onRunter={() => verschiebe(i, 1)} onEntfernen={() => entferneUebung(i)} />
+            onHoch={() => verschiebe(i, -1)} onRunter={() => verschiebe(i, 1)} onEntfernen={() => entferneUebung(i)}
+            onBearbeiten={() => setBearbeite(map.get(x.uebungId))} />
         ))}
 
         <Button className="w-full !min-h-14" onClick={() => setAuswahl(true)}><Icon name="plus" /> Übung hinzufügen</Button>
@@ -176,66 +180,79 @@ export function EinheitEditor({ id }: { id: string }) {
       </Inhalt>
       <UebungsAuswahl offen={auswahl} onClose={() => setAuswahl(false)} schonDrin={einheit.eintraege.map(x => x.uebungId)}
         onWahl={u => aendere(e => ({ ...e, eintraege: [...e.eintraege, { uebungId: u.id, saetze: [] }] }))} />
+      <UebungsFormular offen={!!bearbeite} uebung={bearbeite} onClose={() => setBearbeite(undefined)} onGespeichert={() => melde("Übung gespeichert")} />
     </>
   );
 }
 
-function UebungsKarte({ index, anzahl, uebung, saetze, ziel, vorher, rekorde, blitz, onSaetze, onHinzu, onHoch, onRunter, onEntfernen }: {
+function UebungsKarte({ index, anzahl, uebung, saetze, ziel, vorher, rekorde, blitz, onSaetze, onHinzu, onHoch, onRunter, onEntfernen, onBearbeiten }: {
   index: number; anzahl: number; uebung?: Uebung; saetze: Satz[]; ziel?: VorlagenUebung;
   vorher?: { datum: string; saetze: Satz[] }; rekorde: Map<string, Rekord>; blitz: Set<string>;
-  onSaetze: (s: Satz[]) => void; onHinzu: () => void; onHoch: () => void; onRunter: () => void; onEntfernen: () => void;
+  onSaetze: (s: Satz[]) => void; onHinzu: () => void; onHoch: () => void; onRunter: () => void; onEntfernen: () => void; onBearbeiten: () => void;
 }) {
+  const art = artVon(uebung);
   const setze = (j: number, teil: Partial<Satz>) => onSaetze(saetze.map((s, k) => (k === j ? { ...s, ...teil } : s)));
+  const zielText = ziel && (ziel.zielSaetze || ziel.zielWdh || ziel.zielSek)
+    ? `${ziel.zielSaetze ?? "–"} Sätze × ${art === "zeit" ? (ziel.zielSek ? fmtSek(ziel.zielSek) : "–") : `${ziel.zielWdh ?? "–"} Wdh.`}`
+    : null;
   return (
-    <Karte className="space-y-3">
-      <div className="flex items-start gap-1">
-        <div className="flex-1 min-w-0 pt-1">
-          <h2 className="font-bold text-lg leading-tight">{uebung?.name ?? "Gelöschte Übung"}</h2>
-          {uebung?.notiz && <p className="text-xs text-muted">{uebung.notiz}</p>}
-        </div>
+    <Karte className="!p-0 overflow-hidden">
+      <div className="flex items-start gap-1 px-4 pt-3 pb-2">
+        <button type="button" onClick={onBearbeiten} disabled={!uebung} className="flex-1 min-w-0 text-left min-h-10 group" aria-label={`${uebung?.name ?? "Übung"} bearbeiten`}>
+          <span className="flex items-center gap-1.5">
+            <span className="font-semibold text-base leading-tight">{uebung?.name ?? "Gelöschte Übung"}</span>
+            {uebung && <Icon name="stift" className="size-3.5 text-muted shrink-0" />}
+          </span>
+          <span className="block text-xs text-muted">
+            {uebung?.kategorie}{art !== "gewicht" && ` · ${art === "zeit" ? "Zeit" : "Körpergewicht"}`}{uebung?.notiz && ` · ${uebung.notiz}`}
+          </span>
+        </button>
         <IconButton icon="hoch" label="Nach oben" disabled={index === 0} onClick={onHoch} className="disabled:opacity-30 !size-10" />
         <IconButton icon="runter" label="Nach unten" disabled={index === anzahl - 1} onClick={onRunter} className="disabled:opacity-30 !size-10" />
         <IconButton icon="x" label="Übung entfernen" onClick={onEntfernen} className="!size-10" />
       </div>
 
-      <div className="rounded-xl bg-karte2 px-3 py-2 text-sm space-y-0.5">
-        {vorher ? (
-          <p><span className="text-muted">Letztes Mal ({formatKurz(vorher.datum)}): </span>
-            <span className="font-semibold tabular">{vorher.saetze.map(satzText).join(" · ")} kg</span></p>
-        ) : <p className="text-muted">Noch keine früheren Einträge.</p>}
-        {ziel && (ziel.zielSaetze || ziel.zielWdh) && (
-          <p><span className="text-muted">Ziel: </span><span className="font-semibold">{ziel.zielSaetze ?? "–"} Sätze × {ziel.zielWdh ?? "–"} Wdh.</span></p>
-        )}
-      </div>
+      <dl className="border-y border-linie bg-karte2/50 px-4 py-2 text-sm grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+        <dt className="text-muted">Letztes Mal</dt>
+        <dd className="tabular">{vorher ? <><span className="text-muted">{formatKurz(vorher.datum)} · </span>{vorher.saetze.map(x => satzText(x, art)).join(" · ")}</> : <span className="text-muted">noch keine Einträge</span>}</dd>
+        {zielText && <><dt className="text-muted">Ziel</dt><dd>{zielText}</dd></>}
+      </dl>
 
-      {saetze.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex text-xs text-muted px-1 gap-2">
-            <span className="w-5">Satz</span><span className="flex-1 text-center">Wdh.</span><span className="flex-[1.25] text-center">Gewicht (kg)</span><span className="w-8" />
-          </div>
-          {saetze.map((s, j) => {
-            const r = rekorde.get(`${index}-${j}`);
-            const pr = r && (r.gewicht || r.e1rm);
-            return (
-              <div key={j} className={`rounded-xl ${pr ? "bg-rekord-bg p-1 -m-1" : ""} ${blitz.has(`${index}-${j}`) ? "rekord-blitz" : ""}`}>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-5 text-center font-semibold text-text2 tabular">{j + 1}</span>
-                  <ZahlFeld label={`Satz ${j + 1} Wiederholungen`} wert={s.wdh} schritt={1} onChange={n => setze(j, { wdh: Math.round(n) })} />
-                  <ZahlFeld label={`Satz ${j + 1} Gewicht`} wert={s.kg} schritt={2.5} dezimal onChange={n => setze(j, { kg: n })} className="flex-[1.25]" />
-                  <IconButton icon="x" label={`Satz ${j + 1} löschen`} className="!size-10 !w-8" onClick={() => onSaetze(saetze.filter((_, k) => k !== j))} />
+      <div className="px-4 py-3 space-y-2">
+        {saetze.length > 0 && (
+          <>
+            <div className="flex text-[11px] uppercase tracking-wider text-muted gap-1.5">
+              <span className="w-5">#</span>
+              <span className="flex-1 text-center">{art === "zeit" ? "Sekunden" : "Wdh."}</span>
+              <span className="flex-[1.25] text-center">{art === "gewicht" ? "Gewicht (kg)" : "Zusatz (kg)"}</span>
+              <span className="w-8" />
+            </div>
+            {saetze.map((s, j) => {
+              const r = rekorde.get(`${index}-${j}`);
+              const pr = istRekord(r);
+              return (
+                <div key={j} className={`${pr ? "border-l-2 border-rekord pl-2 -ml-2.5" : ""} ${blitz.has(`${index}-${j}`) ? "rekord-blitz" : ""}`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 text-center text-sm text-muted tabular">{j + 1}</span>
+                    {art === "zeit"
+                      ? <ZahlFeld label={`Satz ${j + 1} Sekunden`} wert={s.sek ?? 0} schritt={5} onChange={n => setze(j, { sek: Math.round(n), wdh: 0 })} />
+                      : <ZahlFeld label={`Satz ${j + 1} Wiederholungen`} wert={s.wdh} schritt={1} onChange={n => setze(j, { wdh: Math.round(n) })} />}
+                    <ZahlFeld label={`Satz ${j + 1} ${art === "gewicht" ? "Gewicht" : "Zusatzgewicht"}`} wert={s.kg} schritt={art === "gewicht" ? 2.5 : 1.25} dezimal
+                      onChange={n => setze(j, { kg: n })} className="flex-[1.25]" />
+                    <IconButton icon="x" label={`Satz ${j + 1} löschen`} className="!size-10 !w-8" onClick={() => onSaetze(saetze.filter((_, k) => k !== j))} />
+                  </div>
+                  {pr && r && (
+                    <p className="text-xs font-medium text-rekord flex items-center gap-1 pl-7 pt-1">
+                      <Icon name="pokal" className="size-3.5" /> Neue Bestleistung · {rekordText(r, art)}
+                    </p>
+                  )}
                 </div>
-                {pr && (
-                  <p className="text-xs font-semibold text-rekord flex items-center gap-1 pl-7 pt-1">
-                    <Icon name="pokal" className="size-4" /> Neue Bestleistung{r.gewicht ? " · schwerstes Gewicht" : ""}{r.e1rm ? " · bestes 1RM" : ""}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <Button variante="leise" className="w-full border border-akzent/30" onClick={onHinzu}><Icon name="plus" /> Satz hinzufügen</Button>
+              );
+            })}
+          </>
+        )}
+        <Button variante="leise" className="w-full border border-dashed border-akzent/40" onClick={onHinzu}><Icon name="plus" /> Satz hinzufügen</Button>
+      </div>
     </Karte>
   );
 }

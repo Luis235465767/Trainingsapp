@@ -61,14 +61,14 @@ const istZahl = (x: unknown): x is number => typeof x === "number" && Number.isF
 const istTag = (x: unknown) => istText(x) && /^\d{4}-\d{2}-\d{2}$/.test(x);
 const optText = (x: unknown) => x === undefined || x === null || istText(x);
 const optZahl = (x: unknown) => x === undefined || x === null || istZahl(x);
-const satzOk = (s: any) => s && istZahl(s.wdh) && istZahl(s.kg);
+const satzOk = (s: any) => s && istZahl(s.wdh) && istZahl(s.kg) && optZahl(s.sek);
 
 const PRUEFUNG: Record<Tabelle, (x: any) => boolean> = {
-  uebungen: u => istText(u.name) && istText(u.kategorie) && optText(u.notiz),
+  uebungen: u => istText(u.name) && istText(u.kategorie) && optText(u.notiz) && (u.art === undefined || u.art === null || ["gewicht", "koerpergewicht", "zeit"].includes(u.art)),
   kraftEinheiten: e => istTag(e.datum) && optText(e.notiz) && Array.isArray(e.eintraege) &&
     e.eintraege.every((x: any) => x && istText(x.uebungId) && Array.isArray(x.saetze) && x.saetze.every(satzOk)),
   vorlagen: v => istText(v.name) && Array.isArray(v.uebungen) &&
-    v.uebungen.every((x: any) => x && istText(x.uebungId) && optZahl(x.zielSaetze) && optZahl(x.zielWdh)),
+    v.uebungen.every((x: any) => x && istText(x.uebungId) && optZahl(x.zielSaetze) && optZahl(x.zielWdh) && optZahl(x.zielSek)),
   handballEinheiten: h => istTag(h.datum) && (h.art === "Training" || h.art === "Spiel") && istZahl(h.dauerMin) && istZahl(h.rpe) && optText(h.notiz),
 };
 

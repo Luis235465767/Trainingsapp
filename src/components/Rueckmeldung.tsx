@@ -28,7 +28,7 @@ export function RueckmeldungProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed top-0 inset-x-0 z-[60] pt-safe pointer-events-none flex flex-col items-center gap-2 px-4 mt-2" aria-live="polite">
         {meldungen.map(m => (
-          <div key={m.id} className={`toast pointer-events-auto max-w-md w-full rounded-xl px-4 py-3 shadow-lg font-semibold flex items-center gap-2 border ${
+          <div key={m.id} className={`toast pointer-events-auto max-w-md w-full rounded-md px-4 py-3 shadow-sm font-semibold flex items-center gap-2 border ${
             m.art === "rekord" ? "bg-rekord-bg text-text border-rekord" : m.art === "fehler" ? "bg-karte text-gefahr border-gefahr" : "bg-karte text-text border-linie"}`}>
             {m.art === "rekord" && <Icon name="pokal" className="size-5 text-rekord shrink-0" />}
             <span>{m.text}</span>
@@ -38,8 +38,8 @@ export function RueckmeldungProvider({ children }: { children: ReactNode }) {
       {frageOffen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6" role="alertdialog" aria-modal="true" aria-label={frageOffen.titel}>
           <div className="absolute inset-0 bg-black/50" onClick={() => antworte(false)} />
-          <div className="relative bg-karte rounded-2xl p-5 w-full max-w-sm space-y-4 border border-linie">
-            <h2 className="text-lg font-bold">{frageOffen.titel}</h2>
+          <div className="relative bg-karte rounded-lg p-5 w-full max-w-sm space-y-4 border border-linie">
+            <h2 className="text-lg font-semibold">{frageOffen.titel}</h2>
             {frageOffen.text && <p className="text-text2 text-sm">{frageOffen.text}</p>}
             <div className="flex gap-2">
               <Button className="flex-1" onClick={() => antworte(false)}>Abbrechen</Button>

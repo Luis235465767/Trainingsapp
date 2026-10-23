@@ -14,6 +14,8 @@ Danach startet die App vom Home-Bildschirm im Vollbild und läuft auch ohne Inte
 ## Funktionen
 
 - **Training:** leer oder aus einer Vorlage starten. „Satz hinzufügen“ übernimmt die Werte des letzten Satzes. Zu jeder Übung steht, was beim letzten Mal geschafft wurde. Neue Bestleistungen (schwerstes Gewicht oder bestes geschätztes 1RM) werden sofort hervorgehoben. Jede Eingabe wird direkt gespeichert. Ein laufendes Training lässt sich nach dem Schließen der App fortsetzen.
+- **Übungsarten:** *Gewicht* (Wdh. × kg), *Körpergewicht* (Wdh., optional Zusatzgewicht, z. B. Klimmzüge, Dips) und *Zeit* (Sekunden, optional Zusatzgewicht, z. B. Plank). Bestleistungen und Statistik richten sich nach der Art: bei Körpergewicht meiste Wiederholungen, bei Zeit längste Dauer.
+- **Übungen bearbeiten:** im Tab „Übungen“ auf „Bearbeiten“ tippen oder im Training direkt auf den Namen der Übung.
 - **Handball:** Training oder Spiel mit Dauer und RPE (1–10). Belastung = Session-RPE = Dauer × RPE.
 - **Verlauf:** alle Einheiten nach Monat, antippen zum Bearbeiten oder Löschen.
 - **Statistik:** Gewichtsverlauf und geschätztes 1RM pro Übung, Wochenvolumen (gesamt oder pro Übung), Bestleistungen, Trainingskalender, wöchentliche Handball-Belastung. Zeitraum: 12 Wochen, 6 Monate, 1 Jahr oder alles.
@@ -45,7 +47,7 @@ Das erste Gerät legt das Gist an, weitere Geräte finden es automatisch. Das To
 
 | Kennzahl | Formel |
 |---|---|
-| Volumen | Summe aus Wiederholungen × Gewicht (pro Satz) |
+| Volumen | Summe aus Wiederholungen × Gewicht (pro Satz); bei Körpergewicht nur das Zusatzgewicht, Zeitübungen zählen nicht |
 | Geschätztes 1RM (Epley) | Gewicht × (1 + Wdh./30), bester Satz einer Einheit |
 | Gewichtsverlauf | schwerster Satz pro Einheit (bei gleichem Gewicht der mit mehr Wdh.) |
 | Session-RPE | Dauer in Minuten × RPE |

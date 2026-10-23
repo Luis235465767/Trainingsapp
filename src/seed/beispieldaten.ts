@@ -1,5 +1,5 @@
 // Erzeugt realistische Beispieldaten der letzten 12 Wochen. Alle Einträge tragen beispiel: true.
-import type { Backup, HandballEinheit, KraftEinheit, Uebung, Vorlage } from "../model/types";
+import type { Backup, HandballEinheit, KraftEinheit, Satz, Uebung, Vorlage } from "../model/types";
 import { heute, plusTage, wochenStart } from "../logic/datum";
 
 type Daten = Pick<Backup, "uebungen" | "kraftEinheiten" | "vorlagen" | "handballEinheiten">;
@@ -11,16 +11,17 @@ function zufall(seed: number) {
 
 export function erzeugeBeispieldaten(bis = heute(), wochen = 12): Daten {
   const r = zufall(42);
-  const u = (id: string, name: string, kategorie: string, notiz?: string): Uebung => ({ id: `bsp-${id}`, name, kategorie, notiz, beispiel: true });
+  const u = (id: string, name: string, kategorie: string, notiz?: string, art?: Uebung["art"]): Uebung => ({ id: `bsp-${id}`, name, kategorie, art, notiz, beispiel: true });
   const uebungen = [
     u("bank", "Bankdrücken", "Brust"),
     u("knie", "Kniebeuge", "Beine", "Hantel hinten, bis parallel"),
     u("kreuz", "Kreuzheben", "Rücken"),
     u("ruder", "Rudern vorgebeugt", "Rücken"),
     u("schulter", "Schulterdrücken", "Schultern"),
-    u("klimm", "Klimmzüge (Zusatzgewicht)", "Rücken"),
+    u("klimm", "Klimmzüge", "Rücken", undefined, "koerpergewicht"),
     u("ausfall", "Ausfallschritte", "Beine"),
-    u("plank", "Crunches am Kabelzug", "Core"),
+    u("crunch", "Crunches am Kabelzug", "Core"),
+    u("plank", "Plank", "Core", "Unterarmstütz", "zeit"),
   ];
   const id = (n: string) => `bsp-${n}`;
 
@@ -29,6 +30,7 @@ export function erzeugeBeispieldaten(bis = heute(), wochen = 12): Daten {
       { uebungId: id("knie"), zielSaetze: 3, zielWdh: 5 },
       { uebungId: id("bank"), zielSaetze: 3, zielWdh: 5 },
       { uebungId: id("ruder"), zielSaetze: 3, zielWdh: 8 },
+      { uebungId: id("plank"), zielSaetze: 2, zielSek: 45 },
     ] },
     { id: "bsp-v-b", name: "Ganzkörper B", beispiel: true, uebungen: [
       { uebungId: id("kreuz"), zielSaetze: 3, zielWdh: 5 },
@@ -39,8 +41,8 @@ export function erzeugeBeispieldaten(bis = heute(), wochen = 12): Daten {
   ];
 
   // Startgewichte und wöchentliche Steigerung
-  const start: Record<string, number> = { knie: 80, bank: 62.5, ruder: 55, kreuz: 100, schulter: 37.5, klimm: 0, ausfall: 20, plank: 25 };
-  const plus: Record<string, number> = { knie: 2.5, bank: 1.25, ruder: 1.25, kreuz: 2.5, schulter: 0.6, klimm: 0.6, ausfall: 1, plank: 0.5 };
+  const start: Record<string, number> = { knie: 80, bank: 62.5, ruder: 55, kreuz: 100, schulter: 37.5, klimm: 0, ausfall: 20, crunch: 25 };
+  const plus: Record<string, number> = { knie: 2.5, bank: 1.25, ruder: 1.25, kreuz: 2.5, schulter: 0.6, klimm: 0.4, ausfall: 1, crunch: 0.5 };
   const auf25 = (x: number) => Math.round(x / 1.25) * 1.25;
 
   const kraftEinheiten: KraftEinheit[] = [];
@@ -54,16 +56,23 @@ export function erzeugeBeispieldaten(bis = heute(), wochen = 12): Daten {
     for (const [tag, v] of plan) {
       const datum = plusTage(mo, tag);
       if (datum > bis || r() < 0.1) continue;
-      const eintraege = v.uebungen.map(x => {
+      const eintraege = v.uebungen.filter(x => x.uebungId !== id("plank")).map(x => {
         const name = x.uebungId.slice(4);
-        const kg = auf25(start[name] + plus[name] * w + (r() < 0.2 ? -2.5 : 0));
+        // Klimmzüge: erst mehr Wiederholungen mit Körpergewicht, ab Woche 7 mit Zusatzgewicht
+        const klimm = name === "klimm";
+        const kg = klimm ? (w < 6 ? 0 : auf25(1.25 * (w - 5))) : Math.max(0, auf25(start[name] + plus[name] * w + (r() < 0.2 ? -2.5 : 0)));
+        const basisWdh = klimm ? (w < 6 ? 5 + Math.floor(w / 2) : 6) : (x.zielWdh ?? 8);
         const saetze = Array.from({ length: x.zielSaetze ?? 3 }, (_, i) => ({
-          wdh: Math.max(1, (x.zielWdh ?? 8) - (i === 2 && r() < 0.4 ? 1 : 0)),
+          wdh: Math.max(1, basisWdh - (i === 2 && r() < 0.4 ? 1 : 0)),
           kg,
         }));
-        return { uebungId: x.uebungId, saetze };
+        return { uebungId: x.uebungId, saetze: saetze as Satz[] };
       });
-      if (r() < 0.5) eintraege.push({ uebungId: id("plank"), saetze: [{ wdh: 12, kg: auf25(start.plank + plus.plank * w) }, { wdh: 12, kg: auf25(start.plank + plus.plank * w) }] });
+      if (r() < 0.5) eintraege.push({ uebungId: id("crunch"), saetze: [{ wdh: 12, kg: auf25(start.crunch + plus.crunch * w) }, { wdh: 12, kg: auf25(start.crunch + plus.crunch * w) }] });
+      if (v === vorlagen[0]) {
+        const sek = 40 + 5 * Math.floor(w / 2);
+        eintraege.push({ uebungId: id("plank"), saetze: [{ wdh: 0, kg: 0, sek }, { wdh: 0, kg: 0, sek: sek - 10 }] });
+      }
       kraftEinheiten.push({ id: `bsp-k-${w}-${tag}`, datum, vorlageId: v.id, eintraege, beispiel: true });
     }
     // Handball: Di und Fr Training, Sa oder So Spiel

@@ -3,44 +3,45 @@
 /* Farben als Variablen, Dark Mode folgt der Systemeinstellung. */
 :root {
   color-scheme: light;
-  --seite: #f4f4f1;
-  --karte: #fcfcfb;
-  --karte2: #efeee9;
-  --text: #0b0b0b;
-  --text2: #52514e;
-  --muted: #6f6d68;
-  --linie: #e1e0d9;
-  --achse: #c3c2b7;
+  /* Klinisch: weiße Flächen, kühle Grautöne, ein Blau als Akzent */
+  --seite: #f4f6f9;
+  --karte: #ffffff;
+  --karte2: #f1f4f8;
+  --text: #0f1720;
+  --text2: #475260;
+  --muted: #677282;
+  --linie: #dde3ea;
+  --achse: #c3cbd5;
   --akzent: #2a78d6;
   --akzent-text: #ffffff;
   --kraft: #2a78d6;
   --handball: #eb6834;
   --spiel: #1baf7a;
-  --gut: #006300;
+  --gut: #0f7a3a;
   --gefahr: #c22f2f;
-  --rekord: #b86e00;
-  --rekord-bg: #fff3d6;
+  --rekord: #a86200;
+  --rekord-bg: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --seite: #0d0d0d;
-    --karte: #1a1a19;
-    --karte2: #262624;
-    --text: #f0efec;
-    --text2: #c3c2b7;
-    --muted: #98968f;
-    --linie: #2c2c2a;
-    --achse: #383835;
+    --seite: #0b0e12;
+    --karte: #13171c;
+    --karte2: #1a1f26;
+    --text: #e8edf2;
+    --text2: #b3bcc7;
+    --muted: #8a94a3;
+    --linie: #262d36;
+    --achse: #353d48;
     --akzent: #3987e5;
     --akzent-text: #ffffff;
     --kraft: #3987e5;
     --handball: #d95926;
     --spiel: #199e70;
-    --gut: #0ca30c;
+    --gut: #22b35a;
     --gefahr: #e66767;
-    --rekord: #fab219;
-    --rekord-bg: #3a2c0a;
+    --rekord: #f0a92a;
+    --rekord-bg: #13171c;
   }
 }
 

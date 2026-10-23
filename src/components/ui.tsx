@@ -5,8 +5,8 @@ import { Icon } from "./Icon";
 type Variante = "primaer" | "sekundaer" | "gefahr" | "leise";
 
 const VARIANTEN: Record<Variante, string> = {
-  primaer: "bg-akzent text-akzent-text active:brightness-90",
-  sekundaer: "bg-karte2 text-text active:brightness-95",
+  primaer: "bg-akzent text-akzent-text border border-akzent active:brightness-90",
+  sekundaer: "bg-karte text-text border border-linie active:bg-karte2",
   gefahr: "bg-transparent text-gefahr border border-gefahr/40 active:bg-gefahr/10",
   leise: "bg-transparent text-akzent active:bg-akzent/10",
 };
@@ -15,7 +15,7 @@ export function Button({ variante = "sekundaer", className = "", ...rest }: Butt
   return (
     <button
       type="button"
-      className={`min-h-12 rounded-xl px-4 font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40 transition ${VARIANTEN[variante]} ${className}`}
+      className={`min-h-12 rounded-md px-4 font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40 transition ${VARIANTEN[variante]} ${className}`}
       {...rest}
     />
   );
@@ -24,22 +24,22 @@ export function Button({ variante = "sekundaer", className = "", ...rest }: Butt
 export function IconButton({ icon, label, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string }) {
   return (
     <button type="button" aria-label={label} title={label}
-      className={`size-12 shrink-0 rounded-xl inline-flex items-center justify-center text-text2 active:bg-karte2 ${className}`} {...rest}>
+      className={`size-12 shrink-0 rounded-md inline-flex items-center justify-center text-text2 active:bg-karte2 ${className}`} {...rest}>
       <Icon name={icon} />
     </button>
   );
 }
 
 export function Karte({ children, className = "", ...rest }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={`bg-karte rounded-2xl border border-linie p-4 ${className}`} {...rest}>{children}</div>;
+  return <div className={`bg-karte rounded-lg border border-linie p-4 ${className}`} {...rest}>{children}</div>;
 }
 
 export function Seitenkopf({ titel, zurueck, rechts }: { titel: string; zurueck?: () => void; rechts?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-20 bg-seite/95 backdrop-blur pt-safe border-b border-linie">
+    <header className="sticky top-0 z-20 bg-karte/95 backdrop-blur pt-safe border-b border-linie">
       <div className="max-w-2xl mx-auto flex items-center gap-1 px-2 h-14">
         {zurueck ? <IconButton icon="zurueck" label="Zurück" onClick={zurueck} /> : <span className="w-2" />}
-        <h1 className="text-xl font-bold flex-1 truncate">{titel}</h1>
+        <h1 className="text-lg font-semibold tracking-tight flex-1 truncate">{titel}</h1>
         {rechts}
       </div>
     </header>
@@ -60,14 +60,14 @@ export function Feld({ label, children, hinweis }: { label: string; children: Re
   );
 }
 
-export const eingabeKlasse = "w-full min-h-12 rounded-xl bg-karte2 border border-linie px-3 outline-none focus:border-akzent";
+export const eingabeKlasse = "w-full min-h-12 rounded-md bg-karte border border-linie px-3 outline-none focus:border-akzent focus:ring-2 focus:ring-akzent/15";
 
 export function Segmente<T extends string>({ werte, wert, onChange, label }: { werte: { wert: T; label: string }[]; wert: T; onChange: (w: T) => void; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex bg-karte2 rounded-xl p-1 gap-1">
+    <div role="radiogroup" aria-label={label} className="flex bg-karte2 border border-linie rounded-md p-0.5 gap-0.5">
       {werte.map(w => (
         <button key={w.wert} type="button" role="radio" aria-checked={w.wert === wert} onClick={() => onChange(w.wert)}
-          className={`flex-1 min-h-10 rounded-lg text-sm font-semibold transition ${w.wert === wert ? "bg-karte text-text shadow-sm" : "text-text2"}`}>
+          className={`flex-1 min-h-10 rounded-[5px] text-sm font-medium transition ${w.wert === wert ? "bg-karte text-akzent border border-linie" : "text-text2 border border-transparent"}`}>
           {w.label}
         </button>
       ))}
@@ -96,8 +96,8 @@ export function ZahlFeld({ wert, onChange, schritt, min = 0, label, einheit, dez
     onChange(r);
   };
   return (
-    <div className={`flex items-stretch rounded-xl bg-karte2 border border-linie overflow-hidden min-w-0 ${className}`}>
-      <button type="button" aria-label={`${label} verringern`} onClick={() => setze(wert - schritt)} className="w-9 shrink-0 flex items-center justify-center text-text2 active:bg-linie">
+    <div className={`flex items-stretch rounded-md bg-karte border border-linie overflow-hidden min-w-0 focus-within:border-akzent ${className}`}>
+      <button type="button" aria-label={`${label} verringern`} onClick={() => setze(wert - schritt)} className="w-9 shrink-0 flex items-center justify-center text-text2 border-r border-linie bg-karte2/60 active:bg-linie">
         <Icon name="minus" className="size-5" />
       </button>
       <div className="flex-1 min-w-0 relative">
@@ -112,11 +112,11 @@ export function ZahlFeld({ wert, onChange, schritt, min = 0, label, einheit, dez
             setText(t);
             onChange(Math.max(min, parseZahl(t)));
           }}
-          className="w-full h-12 bg-transparent text-center text-[17px] font-semibold tabular px-0 outline-none"
+          className="w-full h-12 bg-transparent text-center text-[17px] font-medium tabular px-0 outline-none"
         />
         {einheit && <span className="absolute right-1 bottom-0.5 text-[10px] text-muted pointer-events-none">{einheit}</span>}
       </div>
-      <button type="button" aria-label={`${label} erhöhen`} onClick={() => setze(wert + schritt)} className="w-9 shrink-0 flex items-center justify-center text-text2 active:bg-linie">
+      <button type="button" aria-label={`${label} erhöhen`} onClick={() => setze(wert + schritt)} className="w-9 shrink-0 flex items-center justify-center text-text2 border-l border-linie bg-karte2/60 active:bg-linie">
         <Icon name="plus" className="size-5" />
       </button>
     </div>
@@ -136,9 +136,9 @@ export function Blatt({ offen, titel, onClose, children }: { offen: boolean; tit
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label={titel}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="sheet relative bg-karte rounded-t-3xl max-h-[88dvh] flex flex-col pb-safe max-w-2xl w-full mx-auto">
+      <div className="sheet relative bg-karte rounded-t-xl max-h-[88dvh] flex flex-col pb-safe max-w-2xl w-full mx-auto">
         <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-linie">
-          <h2 className="text-lg font-bold flex-1">{titel}</h2>
+          <h2 className="text-base font-semibold flex-1">{titel}</h2>
           <IconButton icon="x" label="Schließen" onClick={onClose} />
         </div>
         <div className="overflow-y-auto p-4">{children}</div>
@@ -161,7 +161,7 @@ export function Abschnitt({ titel, children, rechts }: { titel: string; children
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2 px-1">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{titel}</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">{titel}</h2>
         {rechts}
       </div>
       {children}

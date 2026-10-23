@@ -46,7 +46,7 @@ export function TrainingStart() {
             <Karte className="!border-akzent border-2 flex items-center gap-3 active:bg-karte2">
               <span className="size-3 rounded-full bg-akzent animate-pulse shrink-0" />
               <span className="flex-1">
-                <span className="block font-bold">Laufendes Training fortsetzen</span>
+                <span className="block font-semibold">Laufendes Training fortsetzen</span>
                 <span className="block text-sm text-text2">
                   {formatTag(aktiv.datum)} · {aktiv.eintraege.length} Übungen · {aktiv.eintraege.reduce((s, x) => s + x.saetze.length, 0)} Sätze
                 </span>
@@ -88,12 +88,12 @@ export function TrainingStart() {
           <div className="grid grid-cols-2 gap-2">
             <Karte>
               <p className="text-sm text-text2">Krafttraining</p>
-              <p className="text-2xl font-bold">{kraftWoche.length}×</p>
+              <p className="text-2xl font-semibold">{kraftWoche.length}×</p>
               <p className="text-sm text-text2">{fmt(vol)} kg Volumen</p>
             </Karte>
             <Karte>
               <p className="text-sm text-text2">Handball</p>
-              <p className="text-2xl font-bold">{hbWoche.length}×</p>
+              <p className="text-2xl font-semibold">{hbWoche.length}×</p>
               <p className="text-sm text-text2">{fmt(last)} Belastung</p>
             </Karte>
           </div>

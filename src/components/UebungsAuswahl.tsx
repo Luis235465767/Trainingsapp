@@ -39,7 +39,7 @@ export function UebungsAuswahl({ offen, onClose, onWahl, schonDrin = [] }: { off
                 {us.map(u => (
                   <li key={u.id}>
                     <button type="button" onClick={() => waehle(u)} className="w-full min-h-12 text-left px-2 flex items-center gap-2 active:bg-karte2 rounded-lg">
-                      <span className="flex-1">{u.name}</span>
+                      <span className="flex-1">{u.name}{u.art && u.art !== "gewicht" && <span className="text-xs text-muted"> · {u.art === "zeit" ? "Zeit" : "Körpergewicht"}</span>}</span>
                       {schonDrin.includes(u.id) && <span className="text-xs text-muted">schon im Training</span>}
                     </button>
                   </li>
