@@ -8,6 +8,8 @@ export interface Uebung {
   kategorie: string;
   notiz?: string;
   beispiel?: boolean;
+  /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */
+  geaendert?: number;
 }
 
 export interface Satz {
@@ -27,6 +29,8 @@ export interface KraftEinheit {
   notiz?: string;
   eintraege: UebungsEintrag[];
   beispiel?: boolean;
+  /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */
+  geaendert?: number;
 }
 
 export interface VorlagenUebung {
@@ -40,6 +44,8 @@ export interface Vorlage {
   name: string;
   uebungen: VorlagenUebung[];
   beispiel?: boolean;
+  /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */
+  geaendert?: number;
 }
 
 export type HandballArt = "Training" | "Spiel";
@@ -52,6 +58,8 @@ export interface HandballEinheit {
   rpe: number;
   notiz?: string;
   beispiel?: boolean;
+  /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */
+  geaendert?: number;
 }
 
 export const KATEGORIEN = [
@@ -76,4 +84,23 @@ export interface Backup {
   kraftEinheiten: KraftEinheit[];
   vorlagen: Vorlage[];
   handballEinheiten: HandballEinheit[];
+}
+
+export type Tabelle = "uebungen" | "kraftEinheiten" | "vorlagen" | "handballEinheiten";
+export const TABELLEN: Tabelle[] = ["uebungen", "kraftEinheiten", "vorlagen", "handballEinheiten"];
+
+/** Merkt sich eine Löschung, damit der Eintrag auf anderen Geräten nicht wieder auftaucht. */
+export interface Loeschmarke {
+  id: Id;
+  tabelle: Tabelle;
+  zeit: number;
+}
+
+/** Gesamter Datenstand eines Geräts, wie er synchronisiert wird. */
+export interface Stand {
+  uebungen: Uebung[];
+  kraftEinheiten: KraftEinheit[];
+  vorlagen: Vorlage[];
+  handballEinheiten: HandballEinheit[];
+  geloescht: Loeschmarke[];
 }

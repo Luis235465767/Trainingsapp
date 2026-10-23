@@ -9,6 +9,7 @@ import { formatTag } from "../logic/datum";
 import { Abschnitt, Blatt, Button, Karte } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { useRueckmeldung } from "../components/Rueckmeldung";
+import { SyncBereich } from "../components/SyncBereich";
 
 const anzahlText = (b: Pick<Backup, "uebungen" | "kraftEinheiten" | "vorlagen" | "handballEinheiten">) =>
   `${b.uebungen.length} Übungen, ${b.kraftEinheiten.length} Krafteinheiten, ${b.handballEinheiten.length} Handball-Einheiten, ${b.vorlagen.length} Vorlagen`;
@@ -59,7 +60,7 @@ export function DatenSeite() {
         <Karte className="space-y-2 text-sm">
           <p>{bestand ? anzahlText(bestand) : "…"}</p>
           <p className="text-text2">
-            Die Daten liegen nur in diesem Browser. Mach ab und zu ein Backup, besonders vor dem Löschen der Browserdaten oder einem Gerätewechsel.
+            Die Daten liegen in diesem Browser. Mit der Synchronisierung zusätzlich in deinem privaten Gist. Ein gelegentliches Backup schadet trotzdem nicht.
           </p>
           {dauerhaft === false && (
             <Button variante="leise" className="!px-0" onClick={async () => {
@@ -71,6 +72,8 @@ export function DatenSeite() {
           {dauerhaft && <p className="text-gut font-semibold flex items-center gap-1"><Icon name="haken" className="size-4" /> Dauerhafter Speicher aktiv</p>}
         </Karte>
       </Abschnitt>
+
+      <SyncBereich />
 
       <Abschnitt titel="Exportieren">
         <div className="space-y-2">

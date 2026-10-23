@@ -20,7 +20,26 @@ Danach startet die App vom Home-Bildschirm im Vollbild und läuft auch ohne Inte
 - **Übungen, Vorlagen, Daten:** Übungen und Vorlagen verwalten. Export als CSV (für Excel), vollständiges Backup als JSON, Wiederherstellen aus dem Backup.
 - **Beispieldaten:** Beim ersten Start werden 12 Wochen Beispieldaten angelegt. Entfernen über den Hinweis oben oder unter Übungen › Daten. Eigene Einträge bleiben dabei erhalten.
 
-**Wichtig:** Die Daten liegen nur im Browser des Geräts. Regelmäßig unter Übungen › Daten ein Backup machen. Auf dem iPhone die App unbedingt auf dem Home-Bildschirm installieren, sonst kann Safari die Daten nach 7 Tagen ohne Besuch löschen.
+**Wichtig:** Die Daten liegen im Browser des Geräts. Mit der Synchronisierung (unten) zusätzlich in deinem privaten Gist. Auf dem iPhone die App unbedingt auf dem Home-Bildschirm installieren, sonst kann Safari die Daten nach 7 Tagen ohne Besuch löschen.
+
+## Synchronisieren zwischen Geräten
+
+Die Daten werden über ein **privates Gist** in deinem GitHub-Konto zwischen Handy, Tablet und Computer abgeglichen. Kein eigener Server, kostenlos. Einmal pro Gerät:
+
+1. [Fine-grained Token erstellen](https://github.com/settings/personal-access-tokens/new): Namen und Ablaufdatum wählen, unter **Permissions → Account permissions → Gists** „Read and write“ wählen. Sonst nichts. „Generate token“ und kopieren.
+2. In der App **Übungen › Daten › Synchronisierung** das Token einfügen und „Verbinden“ tippen.
+
+Das erste Gerät legt das Gist an, weitere Geräte finden es automatisch. Das Token der Karteikarten-App funktioniert ebenfalls, denn es braucht dieselbe Berechtigung.
+
+**So funktioniert es:**
+- Abgeglichen wird beim Öffnen der App, etwa 3 Sekunden nach jeder Änderung, alle 2 Minuten bei geöffneter App und beim Wechsel in eine andere App.
+- Ohne Netz (z. B. im Keller-Gym) wird lokal gespeichert und später automatisch synchronisiert.
+- Jedes Gerät schreibt nur seine eigene Datei `geraet-<Kennung>.json` ins Gist. Pro Eintrag gewinnt die jüngste Änderung. Gelöschtes wird vermerkt und taucht auf anderen Geräten nicht wieder auf.
+- Ein Backup wiederherstellen ersetzt die Daten auf allen verbundenen Geräten.
+- Die automatischen Beispieldaten eines neuen Geräts bleiben auf diesem Gerät und werden nicht verteilt.
+- Das Token liegt nur im Browser des jeweiligen Geräts. Weil alle Seiten unter `luis235465767.github.io` sich den Browser-Speicher teilen, sollte das Token wirklich nur Gists dürfen. Läuft es ab, zeigt die App das an. Dann ein neues Token erstellen und erneut verbinden.
+- Die Uhrzeit der Geräte entscheidet, welche Änderung „jünger“ ist. Bearbeitest du dieselbe Einheit gleichzeitig auf zwei Geräten, gewinnt die zuletzt gespeicherte.
+
 
 ### Rechenregeln
 
@@ -50,7 +69,8 @@ Zum Testen auf dem Handy im selben WLAN: `npm run dev -- --host`, dann die angez
 |---|---|
 | `src/model/types.ts` | Datenmodell |
 | `src/db/` | Datenbank (Dexie): Schema, Speichern/Laden, Live-Abfragen |
-| `src/logic/` | Rechenlogik als reine Funktionen: Kennzahlen, Datum, CSV/Backup |
+| `src/logic/` | Rechenlogik als reine Funktionen: Kennzahlen, Datum, CSV/Backup, Zusammenführen |
+| `src/sync/` | Synchronisierung über ein privates Gist |
 | `src/seed/` | Beispieldaten |
 | `src/components/` | Bausteine der Oberfläche |
 | `src/pages/` | Seiten |

@@ -1,11 +1,12 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { HandballEinheit, KraftEinheit, Uebung, Vorlage } from "../model/types";
+import type { HandballEinheit, KraftEinheit, Loeschmarke, Uebung, Vorlage } from "../model/types";
 
 export class TrainingDB extends Dexie {
   uebungen!: EntityTable<Uebung, "id">;
   kraftEinheiten!: EntityTable<KraftEinheit, "id">;
   vorlagen!: EntityTable<Vorlage, "id">;
   handballEinheiten!: EntityTable<HandballEinheit, "id">;
+  geloescht!: EntityTable<Loeschmarke, "id">;
 
   constructor(name = "trainingstagebuch") {
     super(name);
@@ -15,6 +16,8 @@ export class TrainingDB extends Dexie {
       vorlagen: "id, name",
       handballEinheiten: "id, datum",
     });
+    // Version 2: Löschmarken für die Synchronisierung
+    this.version(2).stores({ geloescht: "id, tabelle" });
   }
 }
 

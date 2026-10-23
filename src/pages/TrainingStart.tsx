@@ -9,6 +9,7 @@ import { fmt, sessionRpe, volumen } from "../logic/metriken";
 import { Abschnitt, Button, Inhalt, Karte, Seitenkopf } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { BeispielHinweis } from "../components/BeispielHinweis";
+import { SyncAnzeige } from "../components/SyncBereich";
 import { navigiere } from "../router";
 
 export async function starteTraining(vorlage?: Vorlage) {
@@ -39,6 +40,7 @@ export function TrainingStart() {
       <Seitenkopf titel="Training" />
       <Inhalt>
         <BeispielHinweis />
+        <SyncAnzeige klein />
         {aktiv && (
           <button type="button" className="w-full text-left" onClick={() => navigiere(`/einheit/${aktiv.id}`)}>
             <Karte className="!border-akzent border-2 flex items-center gap-3 active:bg-karte2">
