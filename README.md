@@ -17,6 +17,7 @@ Danach startet die App vom Home-Bildschirm im Vollbild und läuft auch ohne Inte
 - **Übungsarten:** *Gewicht* (Wdh. × kg), *Körpergewicht* (Wdh., optional Zusatzgewicht, z. B. Klimmzüge, Dips) und *Zeit* (Sekunden, optional Zusatzgewicht, z. B. Plank). Bestleistungen und Statistik richten sich nach der Art: bei Körpergewicht meiste Wiederholungen, bei Zeit längste Dauer.
 - **Übungen bearbeiten:** im Tab „Übungen“ auf „Bearbeiten“ tippen oder im Training direkt auf den Namen der Übung.
 - **Handball:** Training oder Spiel mit Dauer und RPE (1–10). Belastung = Session-RPE = Dauer × RPE.
+- **Gesamtbelastung & Ruhetag:** Krafttraining bekommt beim Beenden Dauer (automatisch gemessen) und RPE. So ist die Belastung (Dauer × RPE) mit Handball vergleichbar und wird zusammengerechnet. Die Karte „Heute“ auf der Startseite zeigt eine Ampel: *Training ok*, *locker trainieren* oder *Ruhetag empfohlen*, mit Begründung. In der Statistik steht die Belastung pro Woche, getrennt nach Kraft und Handball.
 - **Verlauf:** alle Einheiten nach Monat, antippen zum Bearbeiten oder Löschen.
 - **Statistik:** Gewichtsverlauf und geschätztes 1RM pro Übung, Wochenvolumen (gesamt oder pro Übung), Bestleistungen, Trainingskalender, wöchentliche Handball-Belastung. Zeitraum: 12 Wochen, 6 Monate, 1 Jahr oder alles.
 - **Übungen, Vorlagen, Daten:** Übungen und Vorlagen verwalten. Export als CSV (für Excel), vollständiges Backup als JSON, Wiederherstellen aus dem Backup.
@@ -52,6 +53,12 @@ Das erste Gerät legt das Gist an, weitere Geräte finden es automatisch. Das To
 | Gewichtsverlauf | schwerster Satz pro Einheit (bei gleichem Gewicht der mit mehr Wdh.) |
 | Session-RPE | Dauer in Minuten × RPE |
 | Woche | Montag bis Sonntag, Kalenderwoche nach ISO |
+| Belastung Kraft | Dauer × RPE; ohne Angabe geschätzt: 3 min pro Satz (mind. 20 min) × RPE 6 |
+| Akut : chronisch | Belastung der letzten 7 Tage ÷ Wochenschnitt der letzten 28 Tage (ab ca. 3 Wochen Daten) |
+| Ruhetag (rot) | Verhältnis über 1,5, oder 6+ Trainingstage in Folge, oder ein besonders harter Tag (≥ 1,5× üblich) nach einem Trainingstag |
+| Locker (gelb) | Verhältnis 1,3–1,5, oder 4–5 Trainingstage in Folge, oder ein besonders harter letzter Tag |
+
+Die Empfehlung ist ein Richtwert aus den eigenen Daten, kein medizinischer Rat.
 
 ## Entwicklung
 

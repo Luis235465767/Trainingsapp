@@ -41,6 +41,11 @@ export interface KraftEinheit {
   datum: string;
   vorlageId?: Id;
   notiz?: string;
+  /** Startzeitpunkt (ms), um die Dauer beim Beenden vorzuschlagen */
+  gestartet?: number;
+  /** Dauer in Minuten und Anstrengung (RPE 1–10), für die Belastung (Session-RPE) */
+  dauerMin?: number;
+  rpe?: number;
   eintraege: UebungsEintrag[];
   beispiel?: boolean;
   /** Zeitpunkt der letzten Änderung (ms), für die Synchronisierung. Fehlt bei unveränderten Beispieldaten. */

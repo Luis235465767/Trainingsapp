@@ -21,6 +21,7 @@
   --gefahr: #c22f2f;
   --rekord: #a86200;
   --rekord-bg: #ffffff;
+  --warnung: #c98500;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -42,6 +43,7 @@
     --gefahr: #e66767;
     --rekord: #f0a92a;
     --rekord-bg: #13171c;
+    --warnung: #fab219;
   }
 }
 
@@ -63,6 +65,7 @@
   --color-gefahr: var(--gefahr);
   --color-rekord: var(--rekord);
   --color-rekord-bg: var(--rekord-bg);
+  --color-warnung: var(--warnung);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 

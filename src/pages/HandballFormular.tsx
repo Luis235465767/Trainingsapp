@@ -6,12 +6,9 @@ import { heute } from "../logic/datum";
 import { fmt, sessionRpe } from "../logic/metriken";
 import { Button, Feld, IconButton, Inhalt, Karte, Segmente, Seitenkopf, ZahlFeld, eingabeKlasse } from "../components/ui";
 import { useRueckmeldung } from "../components/Rueckmeldung";
+import { RpeAuswahl } from "../components/RpeAuswahl";
 import { navigiere } from "../router";
 
-const RPE_TEXT: Record<number, string> = {
-  1: "sehr leicht", 2: "leicht", 3: "moderat", 4: "etwas schwer", 5: "schwer",
-  6: "schwer", 7: "sehr schwer", 8: "sehr schwer", 9: "extrem schwer", 10: "maximal",
-};
 
 export function HandballFormular({ id }: { id: string }) {
   const neu = id === "neu";
@@ -57,15 +54,7 @@ export function HandballFormular({ id }: { id: string }) {
             ))}
           </div>
         </div>
-        <div>
-          <span className="block text-sm font-medium text-text2 mb-1">Anstrengung (RPE 1–10): <b className="text-text">{h.rpe} · {RPE_TEXT[h.rpe]}</b></span>
-          <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="RPE">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-              <button key={n} type="button" role="radio" aria-checked={h.rpe === n} aria-label={`RPE ${n}, ${RPE_TEXT[n]}`} onClick={() => setH({ ...h, rpe: n })}
-                className={`h-12 rounded-md text-lg font-semibold border ${h.rpe === n ? "bg-akzent text-akzent-text border-akzent" : "border-linie bg-karte"}`}>{n}</button>
-            ))}
-          </div>
-        </div>
+        <RpeAuswahl wert={h.rpe} onChange={rpe => setH({ ...h, rpe })} />
         <Feld label="Notiz (optional)">
           <textarea className={`${eingabeKlasse} py-2`} rows={2} value={h.notiz ?? ""} onChange={e => setH({ ...h, notiz: e.target.value })} placeholder="z. B. Gegner, Ergebnis, Beschwerden" />
         </Feld>
