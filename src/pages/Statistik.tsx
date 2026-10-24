@@ -10,6 +10,7 @@ import { WochenChart } from "../charts/WochenChart";
 import { Kalender } from "../charts/Kalender";
 import { Legende } from "../charts/ChartTooltip";
 import { useFarben } from "../charts/farben";
+import { empfehlung, tageslasten, wochenGesamt } from "../logic/belastung";
 
 type Zeitraum = "12" | "26" | "52" | "alle";
 
@@ -146,6 +147,12 @@ export default function Statistik() {
   const schnittLast = belastung.reduce((s, w) => s + w.gesamt, 0) / belastung.length;
   const dieseWoche = belastung.at(-1)?.gesamt ?? 0;
 
+  const lasten = tageslasten(kraft, handball);
+  const gesamt = wochenGesamt(lasten, h, wochen).map(w => ({ ...w }));
+  const emp = empfehlung(lasten, h);
+  const schnittGesamt = gesamt.reduce((a, w) => a + w.gesamt, 0) / gesamt.length;
+  const geschaetzt = kraftImZeitraum.filter(e => !(e.dauerMin && e.rpe)).length;
+
   const tage = kalender(kraftImZeitraum, hbImZeitraum);
   const details = (tag: string) => [
     ...kraft.filter(e => e.datum === tag).map(e => `Kraft: ${e.eintraege.map(x => map.get(x.uebungId)?.name ?? "?").join(", ")}`),
@@ -195,6 +202,23 @@ export default function Statistik() {
             <WochenChart daten={volumen} einheit={wocheEinheit} serien={[{ schluessel: "volumen", label: proUebung ? ansicht.woche.label : "Volumen", farbe: f.kraft }]} />
             {!proUebung && <p className="text-xs text-muted">Bei Körpergewicht-Übungen zählt nur das Zusatzgewicht, Zeitübungen zählen nicht mit.</p>}
           </Karte>
+        )}
+
+        {(kraft.length > 0 || handball.length > 0) && (
+          <Abschnitt titel="Gesamtbelastung">
+            <div className="grid grid-cols-3 gap-2">
+              <Kachel titel="Letzte 7 Tage" wert={fmt(Math.round(emp.akut))} />
+              <Kachel titel="Ø pro Woche" wert={fmt(Math.round(schnittGesamt))} unter="im Zeitraum" />
+              <Kachel titel="Akut : chronisch" wert={emp.acwr !== null ? emp.acwr.toFixed(2).replace(".", ",") : "–"} unter="ideal 0,8–1,3" />
+            </div>
+            <Karte className="space-y-2">
+              <h3 className="font-semibold">Belastung pro Woche <span className="font-normal text-text2">· Dauer × RPE</span></h3>
+              <WochenChart daten={gesamt} einheit=""
+                serien={[{ schluessel: "kraft", label: "Kraft", farbe: f.kraft }, { schluessel: "handball", label: "Handball", farbe: f.handball }]} />
+              <Legende eintraege={[{ farbe: f.kraft, label: "Kraft" }, { farbe: f.handball, label: "Handball" }]} />
+              {geschaetzt > 0 && <p className="text-xs text-muted">{geschaetzt} Krafttraining{geschaetzt === 1 ? "" : "s"} im Zeitraum ohne Dauer/RPE – Belastung geschätzt (3 min pro Satz, RPE 6). Nachtragen im Verlauf.</p>}
+            </Karte>
+          </Abschnitt>
         )}
 
         {(kraft.length > 0 || handball.length > 0) && (

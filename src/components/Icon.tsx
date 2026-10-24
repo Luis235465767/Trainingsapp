@@ -19,6 +19,9 @@ const PFADE: Record<string, string> = {
   suche: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5",
   download: "M12 4v12M7 11l5 5 5-5M5 20h14",
   upload: "M12 20V8M7 13l5-5 5 5M5 4h14",
+  warnung: "M12 3l9.5 17h-19L12 3zM12 10v4.5M12 17.5h.01",
+  mond: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+  puls: "M3 12h4l2-6 4 12 2-6h6",
 };
 
 export function Icon({ name, className = "size-6" }: { name: keyof typeof PFADE | string; className?: string }) {

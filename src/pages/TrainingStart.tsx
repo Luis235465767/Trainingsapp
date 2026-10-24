@@ -10,12 +10,14 @@ import { Abschnitt, Button, Inhalt, Karte, Seitenkopf } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { BeispielHinweis } from "../components/BeispielHinweis";
 import { SyncAnzeige } from "../components/SyncBereich";
+import { HeuteKarte } from "../components/HeuteKarte";
+import { kraftBelastung } from "../logic/belastung";
 import { navigiere } from "../router";
 
 export async function starteTraining(vorlage?: Vorlage) {
   const id = neueId();
   await speichereKraft({
-    id, datum: heute(), vorlageId: vorlage?.id,
+    id, datum: heute(), vorlageId: vorlage?.id, gestartet: Date.now(),
     eintraege: (vorlage?.uebungen ?? []).map(u => ({ uebungId: u.uebungId, saetze: [] })),
   });
   setzeAktiveEinheit(id);
@@ -41,6 +43,7 @@ export function TrainingStart() {
       <Inhalt>
         <BeispielHinweis />
         <SyncAnzeige klein />
+        {kraft && handball && <HeuteKarte kraft={kraft} handball={handball} />}
         {aktiv && (
           <button type="button" className="w-full text-left" onClick={() => navigiere(`/einheit/${aktiv.id}`)}>
             <Karte className="!border-akzent border-2 flex items-center gap-3 active:bg-karte2">
@@ -90,6 +93,7 @@ export function TrainingStart() {
               <p className="text-sm text-text2">Krafttraining</p>
               <p className="text-2xl font-semibold">{kraftWoche.length}×</p>
               <p className="text-sm text-text2">{fmt(vol)} kg Volumen</p>
+              <p className="text-sm text-text2">{fmt(kraftWoche.reduce((s, e) => s + kraftBelastung(e).wert, 0))} Belastung</p>
             </Karte>
             <Karte>
               <p className="text-sm text-text2">Handball</p>

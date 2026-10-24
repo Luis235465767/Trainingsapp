@@ -73,7 +73,9 @@ export function erzeugeBeispieldaten(bis = heute(), wochen = 12): Daten {
         const sek = 40 + 5 * Math.floor(w / 2);
         eintraege.push({ uebungId: id("plank"), saetze: [{ wdh: 0, kg: 0, sek }, { wdh: 0, kg: 0, sek: sek - 10 }] });
       }
-      kraftEinheiten.push({ id: `bsp-k-${w}-${tag}`, datum, vorlageId: v.id, eintraege, beispiel: true });
+      const dauerMin = 50 + Math.round(r() * 5) * 5;
+      const rpe = 6 + Math.round(r() * 2);
+      kraftEinheiten.push({ id: `bsp-k-${w}-${tag}`, datum, vorlageId: v.id, dauerMin, rpe, eintraege, beispiel: true });
     }
     // Handball: Di und Fr Training, Sa oder So Spiel
     const termine: [number, "Training" | "Spiel"][] = [[1, "Training"], [4, "Training"], [r() < 0.5 ? 5 : 6, "Spiel"]];

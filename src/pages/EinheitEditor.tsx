@@ -7,10 +7,12 @@ import { useKraftEinheiten, useUebungsMap } from "../db/hooks";
 import { aktiveEinheit, setzeAktiveEinheit } from "../logic/aktiv";
 import { formatKurz, formatTag } from "../logic/datum";
 import { fmt, fmtSek, fruehereSaetze, gueltig, istRekord, letztesMal, pruefeRekord, rekordText, satzText, volumen, type Rekord } from "../logic/metriken";
-import { Button, IconButton, Inhalt, Karte, Seitenkopf, ZahlFeld, eingabeKlasse } from "../components/ui";
+import { Blatt, Button, IconButton, Inhalt, Karte, Seitenkopf, ZahlFeld, eingabeKlasse } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { UebungsAuswahl } from "../components/UebungsAuswahl";
 import { UebungsFormular } from "../components/UebungsFormular";
+import { RpeAuswahl } from "../components/RpeAuswahl";
+import { kraftBelastung } from "../logic/belastung";
 import { useRueckmeldung } from "../components/Rueckmeldung";
 import { navigiere } from "../router";
 
@@ -25,6 +27,7 @@ export function EinheitEditor({ id }: { id: string }) {
   const { melde, frage } = useRueckmeldung();
   const [auswahl, setAuswahl] = useState(false);
   const [bearbeite, setBearbeite] = useState<Uebung | undefined>();
+  const [abschluss, setAbschluss] = useState<{ dauerMin: number; rpe?: number; gemessen?: number } | null>(null);
   const istAktiv = aktiveEinheit() === id;
 
   useEffect(() => {
@@ -119,9 +122,17 @@ export function EinheitEditor({ id }: { id: string }) {
     aendere(e => ({ ...e, eintraege: e.eintraege.filter((_, k) => k !== i) }));
   };
 
-  const beenden = async () => {
+  /** Beim laufenden Training erst Dauer und RPE abfragen, dann speichern. */
+  const beenden = async (angaben?: { dauerMin?: number; rpe?: number }) => {
+    if (istAktiv && !angaben && einheit.eintraege.some(x => x.saetze.some(gueltig))) {
+      const gemessen = einheit.gestartet ? Math.min(300, Math.max(1, Math.round((Date.now() - einheit.gestartet) / 60000))) : undefined;
+      setAbschluss({ dauerMin: einheit.dauerMin ?? gemessen ?? kraftBelastung(einheit).dauerMin, rpe: einheit.rpe, gemessen });
+      return;
+    }
+    setAbschluss(null);
     const bereinigt: KraftEinheit = {
       ...einheit,
+      ...(angaben ? { dauerMin: angaben.dauerMin || undefined, rpe: angaben.rpe || undefined } : {}),
       eintraege: einheit.eintraege.map(x => ({ ...x, saetze: x.saetze.filter(gueltig) })).filter(x => x.saetze.length),
     };
     if (!bereinigt.eintraege.length) {
@@ -174,12 +185,38 @@ export function EinheitEditor({ id }: { id: string }) {
         <textarea className={`${eingabeKlasse} py-2`} rows={2} placeholder="Notiz zum Training (optional)" value={einheit.notiz ?? ""}
           onChange={e => aendere(x => ({ ...x, notiz: e.target.value || undefined }))} />
 
-        <Button variante="primaer" className="w-full !min-h-14 text-lg" onClick={beenden}>
+        {!istAktiv && <BelastungKarte einheit={einheit} onChange={teil => aendere(x => ({ ...x, ...teil }))} />}
+
+        <Button variante="primaer" className="w-full !min-h-14 text-lg" onClick={() => beenden()}>
           <Icon name="haken" /> {istAktiv ? "Training beenden" : "Fertig"}
         </Button>
       </Inhalt>
       <UebungsAuswahl offen={auswahl} onClose={() => setAuswahl(false)} schonDrin={einheit.eintraege.map(x => x.uebungId)}
         onWahl={u => aendere(e => ({ ...e, eintraege: [...e.eintraege, { uebungId: u.id, saetze: [] }] }))} />
+      <Blatt offen={!!abschluss} titel="Training abschließen" onClose={() => setAbschluss(null)}>
+        {abschluss && (
+          <div className="space-y-4">
+            <div>
+              <span className="block text-sm font-medium text-text2 mb-1">Dauer (Minuten)</span>
+              <ZahlFeld label="Dauer in Minuten" wert={abschluss.dauerMin} schritt={5} onChange={n => setAbschluss({ ...abschluss, dauerMin: Math.round(n) })} />
+              {abschluss.gemessen !== undefined && (
+                <p className="text-xs text-muted mt-1">Gemessen seit dem Start: {abschluss.gemessen} min{abschluss.gemessen > 150 ? " – bitte prüfen, falls die App länger offen war." : ""}</p>
+              )}
+            </div>
+            <RpeAuswahl wert={abschluss.rpe} onChange={rpe => setAbschluss({ ...abschluss, rpe })} />
+            <Karte className="flex items-baseline justify-between">
+              <span className="text-text2">Belastung (Session-RPE)</span>
+              <span className="text-right"><b className="text-2xl tabular">{abschluss.rpe ? fmt(abschluss.dauerMin * abschluss.rpe) : "–"}</b>
+                <span className="block text-xs text-muted">{abschluss.dauerMin} min × RPE {abschluss.rpe ?? "?"}</span></span>
+            </Karte>
+            <Button variante="primaer" className="w-full !min-h-14 text-lg" disabled={!abschluss.rpe || !abschluss.dauerMin}
+              onClick={() => beenden({ dauerMin: abschluss.dauerMin, rpe: abschluss.rpe })}>
+              <Icon name="haken" /> Speichern
+            </Button>
+            <Button variante="leise" className="w-full" onClick={() => beenden({})}>Ohne Angabe speichern (Belastung wird geschätzt)</Button>
+          </div>
+        )}
+      </Blatt>
       <UebungsFormular offen={!!bearbeite} uebung={bearbeite} onClose={() => setBearbeite(undefined)} onGespeichert={() => melde("Übung gespeichert")} />
     </>
   );
@@ -253,6 +290,25 @@ function UebungsKarte({ index, anzahl, uebung, saetze, ziel, vorher, rekorde, bl
         )}
         <Button variante="leise" className="w-full border border-dashed border-akzent/40" onClick={onHinzu}><Icon name="plus" /> Satz hinzufügen</Button>
       </div>
+    </Karte>
+  );
+}
+
+/** Dauer und RPE eines abgeschlossenen Trainings nachträglich ändern. */
+function BelastungKarte({ einheit, onChange }: { einheit: KraftEinheit; onChange: (teil: Partial<KraftEinheit>) => void }) {
+  const b = kraftBelastung(einheit);
+  return (
+    <Karte className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-semibold">Belastung</h2>
+        <span className="text-sm tabular"><b>{fmt(b.wert)}</b>{b.geschaetzt && <span className="text-muted"> · geschätzt</span>}</span>
+      </div>
+      <div>
+        <span className="block text-sm font-medium text-text2 mb-1">Dauer (Minuten)</span>
+        <ZahlFeld label="Dauer in Minuten" wert={einheit.dauerMin ?? 0} schritt={5} onChange={n => onChange({ dauerMin: Math.round(n) || undefined })} />
+      </div>
+      <RpeAuswahl wert={einheit.rpe} onChange={rpe => onChange({ rpe })} />
+      {b.geschaetzt && <p className="text-xs text-muted">Ohne Dauer und RPE schätzt die App etwa 3 Minuten pro Satz bei RPE 6.</p>}
     </Karte>
   );
 }

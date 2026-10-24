@@ -24,12 +24,15 @@ export function alsCsv(b: Pick<Backup, "uebungen" | "kraftEinheiten" | "vorlagen
     for (const eintrag of e.eintraege) {
       const u = uebung.get(eintrag.uebungId);
       const art = u?.art ?? "gewicht";
+      const erste = eintrag === e.eintraege[0];
       eintrag.saetze.forEach((s: Satz, i) =>
         zeile({
           Typ: "Kraft", Datum: e.datum, "Übung": u?.name ?? "(gelöscht)", Kategorie: u?.kategorie ?? "", "Übungsart": ARTNAME[art],
           Satz: String(i + 1), Wiederholungen: art === "zeit" ? "" : String(s.wdh), "Gewicht (kg)": zahl(s.kg),
           "Dauer (s)": art === "zeit" || s.sek ? String(s.sek ?? 0) : "",
           "Volumen (kg)": zahl(s.wdh * s.kg), "1RM geschätzt (kg)": art === "gewicht" ? zahl(epley(s.kg, s.wdh)) : "", Notiz: e.notiz ?? "",
+          // Dauer, RPE und Belastung gelten für die ganze Einheit: nur in ihrer ersten Zeile, damit Summen stimmen
+          ...(erste && i === 0 && e.dauerMin && e.rpe ? { "Dauer (min)": String(e.dauerMin), RPE: String(e.rpe), "Session-RPE": String(e.dauerMin * e.rpe) } : {}),
         }),
       );
     }
@@ -91,7 +94,7 @@ export function pruefeBackup(text: string): Backup {
 
   const uebungen = liste<Uebung>(d, "uebungen", u => istText(u.name) && istText(u.kategorie) && optText(u.notiz) && (u.art === undefined || u.art === null || ["gewicht", "koerpergewicht", "zeit"].includes(u.art)));
   const kraftEinheiten = liste<KraftEinheit>(d, "kraftEinheiten", e =>
-    istTag(e.datum) && optText(e.notiz) && Array.isArray(e.eintraege) &&
+    istTag(e.datum) && optText(e.notiz) && optZahl(e.dauerMin) && optZahl(e.rpe) && optZahl(e.gestartet) && Array.isArray(e.eintraege) &&
     e.eintraege.every((x: any) => x && istText(x.uebungId) && Array.isArray(x.saetze) && x.saetze.every(satzOk)));
   const vorlagen = liste<Vorlage>(d, "vorlagen", v =>
     istText(v.name) && Array.isArray(v.uebungen) &&

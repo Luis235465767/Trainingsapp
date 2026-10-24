@@ -4,6 +4,7 @@ import type { HandballEinheit, KraftEinheit } from "../model/types";
 import { formatTag } from "../logic/datum";
 import { fmt, gueltig, sessionRpe, volumen } from "../logic/metriken";
 import { aktiveEinheit } from "../logic/aktiv";
+import { kraftBelastung } from "../logic/belastung";
 import { Inhalt, Karte, Leer, Segmente, Seitenkopf } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { navigiere } from "../router";
@@ -61,6 +62,7 @@ export function Verlauf() {
                     </span>
                     <span className="block text-sm tabular">
                       {x.e.eintraege.reduce((s, u) => s + u.saetze.filter(gueltig).length, 0)} Sätze · {fmt(volumen(x.e.eintraege.flatMap(u => u.saetze)))} kg
+                      {x.e.dauerMin && x.e.rpe ? ` · ${x.e.dauerMin} min · RPE ${x.e.rpe} · Belastung ${fmt(kraftBelastung(x.e).wert)}` : ""}
                       {aktiveEinheit() === x.e.id && <span className="ml-2 text-akzent font-semibold">läuft</span>}
                     </span>
                   </span>
